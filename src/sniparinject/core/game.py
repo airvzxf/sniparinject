@@ -383,8 +383,8 @@ class Game:
         :return: Variable with the format.
         """
         output_zero_fill: int = struct.get('zero_fill') or 0
-        if output_zero_fill > 0 and isinstance(variable, str):
-            return variable.zfill(output_zero_fill)
+        if output_zero_fill > 0:
+            return str(variable).zfill(output_zero_fill)
 
         return variable
 
@@ -406,12 +406,12 @@ class Game:
         :return: Variable with the format.
         """
         output_auto_zero_fill: bool = struct.get('auto_zero_fill') or False
-        if output_auto_zero_fill and isinstance(variable, str):
+        if output_auto_zero_fill:
             struct_type: str = struct_type or ''
             _, struct_size = self._get_struct(struct_type)
             struct_size *= 2
             struct_size += 2
-            return variable.zfill(struct_size)
+            return str(variable).zfill(struct_size)
 
         return variable
 
@@ -483,7 +483,7 @@ class Game:
             'half precision': ('e', 2),
             'float': ('f', 4),
             'double': ('d', 6),
-            'chars': ('s', 0),
+            'chars': ('s', 1),
         }
 
         symbol = ''
@@ -498,6 +498,7 @@ class Game:
             )
 
         if repeat_count > 1:
+            size *= repeat_count
             symbol = f'{repeat_count}{symbol}'
 
         return symbol, size

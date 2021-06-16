@@ -907,7 +907,7 @@ class TestGame:
 
         # Assert
         assert symbol == f'{repeat_count}{expected_symbol}'
-        assert size == expected_size
+        assert size == expected_size * repeat_count
 
     def test__get_struct_exception_type_error(self):
         # Arrange
