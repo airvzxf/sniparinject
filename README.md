@@ -2,13 +2,15 @@
 
 SniPar Inject is the abbreviation of these three word: Sniffer, Parser and
 Inject. Intercept and read the network packets to find information about the
-game, but it could be useful for any network sniffer. This version is
-specifically for [PyPi][pypi].
+game, but it could be useful for any network sniffer purpose. The injection is
+coming soon.
 
 This project is work in progress. Reefer to the [To-Do's][todo] list to check
 what is done and what is coming.
 
 ## PyPi
+
+For more information go tho the [package's page in PyPi][pypi].
 
 Install the package.
 
@@ -18,8 +20,9 @@ python3 -m pip install sniparinject
 
 ## Run locally
 
-The only two special Python's packages that you need are `scapy` and `PyYAML`.
-Follow the commands to set up and install this package.
+The only two special Python's packages that you need are `scapy` and
+`PyYAML`, the suggested version of `Python` is `>= 3.9`. Follow the commands to
+set up and install this package.
 
 ```bash
 git clone https://github.com/airvzxf/snipar-inject-pypi.git
@@ -30,11 +33,11 @@ cd snipar-inject-pypi || exit 123
 After this setup, it could be easy to activate the vEnv and start to work.
 
 ```bash
-cd snipar-inject-pypi || exit 123
+# Inside of the GitHub cloned directory.
 source ./venv/bin/activate
-# Make modification to the source code files (./sniparinject/*).
+cd src/sniparinject || exit 123
+# Make modification to the source code files.
 # Run your changes.
-# Create and run the unit tests.
 # Finally deactivate the vEnv.
 deactivate
 ```
@@ -115,7 +118,7 @@ check the column `NAME` to review the connection
 Execute the application:
 
 ```bash
-# Execute with root permissions the main script
+# Execute with root permissions the main script.
 sudo python3 main.py
 ```
 
@@ -127,12 +130,9 @@ This example is for the game `Mana Plus`.
 
 ## Settings
 
-Looking for add, modify or remove parse rules. It does not need to modify any
-file in the source code. It has the `settings.yml` file which is able to add,
-modify or remove any rule, please reefer to the file in this project to
-understand in deep. I'll create a PyPi repository and binary files for Arch
-Linux to use the core data of the application and separate only the settings by
-game.
+This software **does not need** to **modify** any file in the **source code**.
+Create a `settings.yml` file which is able to add, modify or remove any parse
+rules.
 
 ### Examples
 
@@ -147,6 +147,8 @@ Server:
   port: 5122
 ```
 
+---
+
 This is the basic structure without any rule
 
 ```yaml
@@ -154,6 +156,8 @@ Game:
   node:
   host:
 ```
+
+---
 
 Example for node, which is the raw data send from your computer to the server.
 
@@ -181,9 +185,10 @@ Game:
               type: hex
 ```
 
-Same example as above, but we do not want to print in console only when the
-player is moving. Add the id `display_message: No` in the action which want to
-avoid the print.
+---
+
+Same example as above, but we do not want to print the action `Player move to`.
+Add `display_message: No` in the action which want to avoid the print.
 
 ```yaml
 Game:
@@ -201,8 +206,12 @@ Game:
               type: hex
 ```
 
-Same example as above, but we do not want to print any node action. It will
-print only the host actions if they have as `Yes` the `display_message` option.
+---
+
+Same example as above, but we do not want to print any node action, it means
+the actions sent by you computer to the server. It will print only the host's
+actions. The default value for the node/host or actions is always
+`display_message: Yes`, it does need to set explicitly.
 
 ```yaml
 Game:
@@ -211,13 +220,19 @@ Game:
     actions:
       0x7d:
         title: Scenario change
+  host:
+    actions:
+      0xad:
+        title: Scenario change
 ```
 
-What are the structs? It is how it will parse the data basically split the raw
-data based on the Python Structs which are C Types. They are well-known as an
-integer, char, long, float, etc. You will find information in the official web
-page [Python Structs][structs]. In the game the function which contains this
-logic is
+---
+
+What are the structs? It is the way that it will parse the data. Basically,
+split the raw data based on the Python Structs which are C Types. They are
+well-known as an integer, char, long, float, etc. You will find information in
+the official web page [Python Structs][structs]. In the game the function which
+contains this logic is
 `def _get_struct(self, struct_type: str, repeat_count: int = 1)`
 in `./core/game.py`.
 
@@ -241,8 +256,12 @@ structs = {
 }
 ```
 
-`chars` is the only type which accept `size` to get any number of bytes and
-process them.
+---
+
+The option `size` returns the number of repeats of this struct. One example is
+if the setting's action has `type: int` and `size: 8`, it will returns
+`4i` and it is exactly the same to write `iiii`. The example below will
+return `5s`.
 
 ```yaml
 structs:
@@ -250,16 +269,19 @@ structs:
     size: 5
 ```
 
-In this example it will take the raw data and split in two the first is an
+---
+
+In this example it will take the raw data and split in two. The first is an
 `unsigned int` with `4 bytes` of size and the `char` with `1 byte` of size. The
 raw data could be `\x00\x80 \x0f\x00\x00\x00 \xf8`, I split intentional with
 spaces to be more clear. The rule in the example take the first
-`unsigned short` value as an action ID, then extract as a `unsigned int`
-the monster ID, and the last byte as an unknown. The output will be
-`---> NPC Monster Check | ID 0x0000000f | 0xf8 |`. Note in the monster ID that
-the raw data, and the output is different: `\x0f\x00\x00\x00` vs `0x0000000f`.
-It is because the network data is coming in `big-endian` and the human /
-machine-readable for numbers is in `little-endian`.
+`unsigned short` value as an action ID (`\x00\x80` equal to `0x80`), then
+extract as a `unsigned int` the monster ID, and the last byte as an unknown.
+The output will be `---> NPC Monster Check | ID 0x0000000f | 0xf8 |`. Note in
+the monster ID that the raw data, and the output is different:
+`\x0f\x00\x00\x00` vs `0x0000000f`. It is because the network data is coming
+in `big-endian` and the human / machine-readable for numbers is
+in `little-endian`.
 
 ```yaml
 Game:
@@ -279,6 +301,8 @@ Game:
               type: hex
 ```
 
+---
+
 In every struct there is an option to add the name which will display before
 the value. In the follow example the first struct does not have the name, and
 the second has the name id. The output will be
@@ -296,6 +320,8 @@ Game:
             type: unsigned int
 ```
 
+---
+
 What happen if I do not use the `output` as an `hex`? It will show the raw
 data: `---> NPC Monster Check | ID b'\x00\x00\x00\x0f' |`
 
@@ -307,13 +333,16 @@ Game:
         title: NPC Monster Check
         structs:
           - name: ID
-            type: unsigned int
+            type: chars
+            size: 4
 ```
+
+---
 
 Take a little break for output and check the `reference` option. In the middle
 time that you are parsing the data, some findings will be discovered for
 example the ID types of the shop options. It is possible to map this
-information and display in the output. Adding `reference:
+information and display as a text in the output. Adding `reference:
 *node_shop_options` to your settings, it will take the section referring with
 the ID `shop_options: &node_shop_options`. If the value is not in the map, it
 will print as usual.
@@ -346,10 +375,10 @@ Game:
               auto_zero_fill: Yes
 ```
 
-The `output` section has one type which is `hex` and multiple options to
-format `zero_fill`, `auto_zero_fill`, `fill` and `fill_left`. All of these
-require to be a `string` and it is possible converting to `hex` or using
-the `reference` ID's.
+---
+
+Formatting the `output` is possible with these options `zero_fill`,
+`auto_zero_fill`, `fill` and `fill_left`.
 
 - `zero_fill` - Add zeros to the left for example if you have for digits as an
   output `0x12` and the property set to `8`, it will display:
