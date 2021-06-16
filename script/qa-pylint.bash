@@ -9,5 +9,11 @@ cd ../
 find ./ \
   -type f \
   -name "*.py" \
-  -and \( -not -path './venv/*' -and -not -path './script/*' -and -not -path './htmlcov/*' \) \
+  -and \( \
+    -not -path './build/*' \
+    -and -not -path './dist/*' \
+    -and -not -path './venv/*' \
+    -and -not -path './script/*' \
+    -and -not -path './htmlcov/*' \
+  \) \
   -exec ./venv/bin/pylint '{}' +
