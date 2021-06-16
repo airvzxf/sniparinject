@@ -1,0 +1,20 @@
+[run]
+command_line = -m pytest
+branch = True
+source = .
+omit =
+    venv/*
+    test_bdd/*
+    build/*
+    dist/*
+
+[report]
+fail_under = 100
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = False
+
+[html]
+title = App Python - Coverage report
+skip_empty = False
