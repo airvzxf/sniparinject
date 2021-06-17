@@ -9,5 +9,5 @@ rm -fR venv
 python3 -m venv venv
 source ./venv/bin/activate
 pip install --upgrade setuptools pip
-pip install -r ../requirements.txt
+pip install -r requirements.txt
 deactivate
