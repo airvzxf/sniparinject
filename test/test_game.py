@@ -75,7 +75,8 @@ class TestGame:
         mock_print.assert_has_calls([
             call(f'{self.style_error}Error NODE: {expected_error_message}{self.style_end}'),
             call(f'{self.style_error}Location: Class Game{self.style_end}'),
-            call(f'{self.style_error}{self.style_end}'),
+            call(f'{self.style_error}Data: {self.style_end}'),
+            call(f'{self.style_error}Data Error: {self.style_end}'),
             call(),
         ])
 
@@ -95,7 +96,8 @@ class TestGame:
         mock_print.assert_has_calls([
             call(f'{self.style_error}Error NODE: {expected_error_message}{self.style_end}'),
             call(f'{self.style_error}Location: Class Game{expected_location}{self.style_end}'),
-            call(f'{self.style_error}{self.style_end}'),
+            call(f'{self.style_error}Data: {self.style_end}'),
+            call(f'{self.style_error}Data Error: {self.style_end}'),
             call(),
         ])
 
@@ -157,7 +159,8 @@ class TestGame:
         mock_print.assert_has_calls([
             call(f'{self.style_error}Error NODE: {expected_message}{self.style_end}'),
             call(f'{self.style_error}Location: {expected_location}{self.style_end}'),
-            call(f'{self.style_error}{expected_data}{self.style_end}'),
+            call(f'{self.style_error}Data: {expected_data}{self.style_end}'),
+            call(f'{self.style_error}Data Error: {expected_data}{self.style_end}'),
             call(),
         ])
 

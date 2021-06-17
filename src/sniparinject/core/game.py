@@ -117,10 +117,12 @@ class Game:
         """
         message = Utility.text_error_format(f'Error {self.request.upper()}: {error}')
         location = Utility.text_error_format(f'Location: {location}')
-        data = Utility.text_error_format(f'{self.raw_data.hex()}')
+        data = Utility.text_error_format(f'Data: {self.raw_data.hex()}')
+        data_copy = Utility.text_error_format(f'Data Error: {self.raw_data_copy.hex()}')
         print(message)
         print(location)
         print(data)
+        print(data_copy)
         print()
 
     # pylint: disable=broad-except
