@@ -4,6 +4,8 @@ set -e
 CURRENT_PATH=$(dirname "${0}")
 cd "${CURRENT_PATH}" || exit
 
-cd ../
+cd ../test || exit
 
-./venv/bin/pytest .
+source ../venv/bin/activate
+pytest
+deactivate

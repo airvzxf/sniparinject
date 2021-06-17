@@ -1,12 +1,9 @@
 [run]
 command_line = -m pytest
 branch = True
-source = .
-omit =
-    venv/*
-    test_bdd/*
-    build/*
-    dist/*
+source =
+    ../src/sniparinject
+    .
 
 [report]
 fail_under = 100

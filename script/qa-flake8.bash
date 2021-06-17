@@ -4,6 +4,8 @@ set -e
 CURRENT_PATH=$(dirname "${0}")
 cd "${CURRENT_PATH}" || exit
 
-cd ../
+cd ../src || exit
 
-./venv/bin/flake8 .
+source ../venv/bin/activate
+flake8 .
+deactivate

@@ -4,16 +4,12 @@ set -e
 CURRENT_PATH=$(dirname "${0}")
 cd "${CURRENT_PATH}" || exit
 
-cd ../
+cd ../src || exit
 
+source ../venv/bin/activate
 find ./ \
   -type f \
   -name "*.py" \
-  -and \( \
-    -not -path './build/*' \
-    -and -not -path './dist/*' \
-    -and -not -path './venv/*' \
-    -and -not -path './script/*' \
-    -and -not -path './htmlcov/*' \
-  \) \
-  -exec ./venv/bin/pylint '{}' +
+  -not -path "./build/*" \
+  -exec pylint '{}' +
+deactivate

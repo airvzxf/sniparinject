@@ -8,6 +8,7 @@ from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 from scapy.sendrecv import sniff
 
+# pylint: disable=import-error
 from .core.game import Game
 from .core.settings import Settings
 

@@ -27,7 +27,7 @@ set up and install this package.
 ```bash
 git clone https://github.com/airvzxf/snipar-inject-pypi.git
 cd snipar-inject-pypi || exit 123
-./script/dev-setup.bash
+./script/setup-dev.bash
 ```
 
 After this setup, it could be easy to activate the vEnv and start to work.

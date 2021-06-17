@@ -10,6 +10,7 @@ from scapy.layers.inet import IP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 
+# pylint: disable=import-error
 from .settings import Settings
 from .text_style import TextStyle
 from .utility import Utility
