@@ -521,12 +521,11 @@ class TestGame:
         message_two = 'Grandpa'
         size_one = 69
         size_two = 4
-        size_struct = 51
         expected_formatted_struct = f'{message_one}{message_two}'
-        expected_size = size_one + size_two + size_struct
+        expected_size = size_one + size_two
         structs = [
             {'type': 'video tape'},
-            {'type': 'audio tape', 'size': size_struct},
+            {'type': 'audio tape'},
         ]
         mock__get_struct.side_effect = [(message_one, size_one), (message_two, size_two)]
 

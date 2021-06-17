@@ -286,9 +286,6 @@ class Game:
                 )
 
             struct_repeat_count = int(struct.get('size') or 0)
-            if struct_repeat_count != 0:
-                size += struct_repeat_count
-
             struct_type, struct_size = self._get_struct(struct_type_setting, struct_repeat_count)
             formatted_struct += struct_type
             size += struct_size
