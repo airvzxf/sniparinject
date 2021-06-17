@@ -7,7 +7,7 @@ correct issue using specific templates, click on the link to create the
 template.
 
 - [Bug reports](https://github.com/airvzxf/sniparinject/issues/new?assignees=airvzxf&labels=bug&template=bug-reports.md&title=%5BBUG%5D)
-- [Feature request](https://github.com/airvzxf/sniparinject/issues/new?assignees=airvzxf&labels=enhancement&template=feature_request.md&title=%5BFEATURE%5D)
+- [Feature request](https://github.com/airvzxf/sniparinject/issues/new?assignees=airvzxf&labels=enhancement&template=feature-request.md&title=%5BFEATURE%5D)
 - [Document improvements](https://github.com/airvzxf/sniparinject/issues/new?assignees=airvzxf&labels=documentation&template=document-improvements.md&title=%5BDOCUMENT%5D)
 - [Question](https://github.com/airvzxf/sniparinject/issues/new?assignees=airvzxf&labels=question&template=question.md&title=%5BQUESTION%5D)
 
