@@ -25,8 +25,8 @@ The only two special Python's packages that you need are `scapy` and
 set up and install this package.
 
 ```bash
-git clone https://github.com/airvzxf/snipar-inject-pypi.git
-cd snipar-inject-pypi || exit 123
+git clone https://github.com/airvzxf/sniparinject.git
+cd sniparinject || exit 123
 ./script/setup-dev.bash
 ```
 
@@ -435,7 +435,7 @@ Enjoy!
 
 [pypi]: https://pypi.org/project/sniparinject/
 
-[todo]: ./TODO.md
+[todo]: https://github.com/airvzxf/sniparinject/blob/main/TODO.md
 
 [ascii-mana-image]: https://asciinema.org/a/R0mxcmrpWHzX96NDJyc7kyTDB.svg
 
