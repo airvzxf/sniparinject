@@ -7,7 +7,7 @@
     - [ ] Build the executable file in the GitHub workflows.
 - [ ] Core module. Extractions and refactors.
     - [x] Create a Python packages (https://pypi.org/) for the `core` module.
-        - [x] Name of the project: `SniPar Inject` = Sniffer, Parser and
+        - [x] Name of the project: `SniParInject` = Sniffer, Parser and
           Inject.
         - [ ] Documentation for the different options in settings.
             - [x] Types: [Python Structs][structs].

@@ -11,7 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/src/sniparinject.egg-info" />
       <excludePattern pattern=".coverage" />
     </content>
-    <orderEntry type="jdk" jdkName="SniPar Inject - PyPi - Python 3.9" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="SniParInject - Python 3.9" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">

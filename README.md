@@ -1,16 +1,18 @@
-# SniPar Inject
+# SniParInject
 
-SniPar Inject is the abbreviation of these three word: Sniffer, Parser and
-Inject. Intercept and read the network packets to find information about the
-game, but it could be useful for any network sniffer purpose. The injection is
-coming soon.
+It is the abbreviation of these three word: Sniffer, Parser and Inject.
+Intercept and read the network packets to find information about the game, but
+it could be useful for any network sniffer purpose. The injection is coming
+soon.
 
 This project is work in progress. Reefer to the [To-Do's][todo] list to check
 what is done and what is coming.
 
-## PyPi
+## Run it
 
-For more information go tho the [package's page in PyPi][pypi].
+### Locally
+
+For more information go to the [package's page in PyPi][pypi].
 
 Install the package.
 
@@ -18,7 +20,7 @@ Install the package.
 python3 -m pip install sniparinject
 ```
 
-## Run locally
+### As a developer
 
 The only two special Python's packages that you need are `scapy` and
 `PyYAML`, the suggested version of `Python` is `>= 3.9`. Follow the commands to
@@ -52,7 +54,7 @@ The most basic setup is creating one Python file, and the settings file.
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 """
-The most basic example of SniPar Inject.
+The most basic example of SniParInject.
 """
 from sniparinject.network_sniffer import NetworkSniffer
 
