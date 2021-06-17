@@ -35,7 +35,7 @@ jobs:
           fi
 
       - name: Analyze the code
-        run: ./src/script/qa-pylint.bash
+        run: ./script/qa-pylint.bash
 
   Flake8:
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
           fi
 
       - name: Lint
-        run: ./src/script/qa-flake8.bash
+        run: ./script/qa-flake8.bash
 
   PyTest:
     runs-on: ubuntu-latest
@@ -89,7 +89,7 @@ jobs:
           fi
 
       - name: Test
-        run: ./src/script/qa-pytest.bash
+        run: ./script/qa-pytest.bash
 
   Coverage:
     runs-on: ubuntu-latest
@@ -116,4 +116,4 @@ jobs:
           fi
 
       - name: Code
-        run: ./src/script/qa-coverage.bash
+        run: ./script/qa-coverage.bash
