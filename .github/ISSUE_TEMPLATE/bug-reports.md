@@ -1,9 +1,6 @@
 ---
-name: Bug reports
-about: Create a report to help us improve
-title: "[BUG]"
-labels: bug
-assignees: ''
+name: Bug reports about: Create a report to help us improve title: "[BUG]"
+labels: bug assignees: airvzxf
 
 ---
 

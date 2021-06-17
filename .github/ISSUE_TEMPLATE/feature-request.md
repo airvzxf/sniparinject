@@ -1,9 +1,7 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Feature request about: Suggest an idea for this project
 title: "[FEATURE]"
-labels: enhancement
-assignees: ''
+labels: enhancement assignees: airvzxf
 
 ---
 

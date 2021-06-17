@@ -1,9 +1,6 @@
 ---
-name: Question
-about: Ask your questions here
-title: "[QUESTION]"
-labels: question
-assignees: ''
+name: Question about: Ask your questions here title: "[QUESTION]"
+labels: question assignees: airvzxf
 
 ---
 
