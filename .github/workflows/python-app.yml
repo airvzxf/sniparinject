@@ -34,7 +34,10 @@ jobs:
             pip install flake8 pylint pytest
           fi
 
-      - name: Analyze the code
+      - name: Set up environment
+        run: ./script/setup-dev.bash
+
+      - name: PyLint
         run: ./script/qa-pylint.bash
 
   Flake8:
@@ -61,7 +64,10 @@ jobs:
             pip install flake8 pylint pytest
           fi
 
-      - name: Lint
+      - name: Set up environment
+        run: ./script/setup-dev.bash
+
+      - name: Flake8
         run: ./script/qa-flake8.bash
 
   PyTest:
@@ -88,7 +94,10 @@ jobs:
             pip install flake8 pylint pytest
           fi
 
-      - name: Test
+      - name: Set up environment
+        run: ./script/setup-dev.bash
+
+      - name: PyTest
         run: ./script/qa-pytest.bash
 
   Coverage:
@@ -115,5 +124,8 @@ jobs:
             pip install flake8 pylint pytest
           fi
 
-      - name: Code
+      - name: Set up environment
+        run: ./script/setup-dev.bash
+
+      - name: Coverage
         run: ./script/qa-coverage.bash
