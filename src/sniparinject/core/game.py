@@ -6,7 +6,6 @@ Parse the game data.
 from struct import unpack
 
 from scapy.compat import raw
-from scapy.layers.inet import IP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 
@@ -21,15 +20,15 @@ class Game:
     Parse the game data.
     """
 
-    def __init__(self, settings_path: str, host_ip: str, packet: Ether):
+    def __init__(self, settings_path: str, is_host: bool, packet: Ether):
         """
         Parse the game data.
 
         :type settings_path: str
         :param settings_path: The file path with all the settings.
 
-        :type host_ip: str
-        :param host_ip: IP of the host means source or destination.
+        :type is_host: bool
+        :param is_host: Is this response by the host?
 
         :type packet: Ether
         :param packet: Ethernet packet.
@@ -37,16 +36,12 @@ class Game:
         :rtype: None
         :return: Nothing.
         """
-        ip_layer = packet.getlayer(IP)
         raw_layer = packet.getlayer(Raw)
         self.raw_data = raw(raw_layer)
         self.raw_data_copy = raw(raw_layer)
         self.settings_path = settings_path
-        self.request = 'node'
+        self.request = 'host' if is_host else 'node'
         self.display_message = True
-
-        if host_ip == ip_layer.src:
-            self.request = 'host'
 
     # pylint: disable=broad-except
     def start(self) -> None:

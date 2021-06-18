@@ -3,7 +3,7 @@
 """
 Start the sniff of the network packets.
 """
-from scapy.layers.inet import TCP
+from scapy.layers.inet import TCP, UDP, IP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 from scapy.sendrecv import sniff
@@ -36,13 +36,16 @@ class NetworkSniffer:
         print(settings)
 
         self.interface = settings.get('Network').get('interface')
-        self.host = settings.get('Server').get('host')
-        self.port = settings.get('Server').get('port')
+        protocol = settings.get('Server').get('protocol') or 'tcp'
+        self.protocol = protocol.lower()
+        self.host_ip = settings.get('Server').get('ip') or None
+        self.host_port = settings.get('Server').get('port') or None
         print()
         print('=== Network Sniffer ===')
         print(f'Interface: {self.interface}')
-        print(f'Host:      {self.host}')
-        print(f'Port:      {self.port}')
+        print(f'Protocol:  {self.protocol}')
+        print(f'Host IP:   {self.host_ip}')
+        print(f'Host Port: {self.host_port}')
         print()
 
     def start(self) -> None:
@@ -52,9 +55,15 @@ class NetworkSniffer:
         :rtype: None
         :return: Nothing.
         """
+        sniffer_filter = self.protocol
+        if self.host_ip:
+            sniffer_filter += f' and host {self.host_ip}'
+        if self.host_port:
+            sniffer_filter += f' and port {self.host_port}'
+
         sniff(
             iface=self.interface,
-            filter=f'host {self.host} and tcp port {self.port}',
+            filter=sniffer_filter,
             count=0,
             prn=self._sniff_data
         )
@@ -69,5 +78,19 @@ class NetworkSniffer:
         :rtype: None
         :return: Nothing.
         """
-        if packet.haslayer(TCP) and packet.haslayer(Raw):
-            Game(self.settings_path, self.host, packet).start()
+        ip_layer = packet.getlayer(IP)
+        if not ip_layer:
+            raise Exception('Error: The IP layer not exists in this package.')
+
+        if not (packet.haslayer(TCP) or packet.haslayer(UDP)):
+            raise Exception('Error: The protocol layer (TCP or UDP) not exists in this package.')
+
+        layer_type = packet.getlayer(UDP) if self.protocol == 'udp' else packet.getlayer(TCP)
+
+        if self.host_ip and self.host_port:
+            is_host = self.host_ip == ip_layer.src and self.host_port == layer_type.sport
+        else:
+            is_host = self.host_ip == ip_layer.src or self.host_port == layer_type.sport
+
+        if packet.haslayer(Raw):
+            Game(self.settings_path, is_host, packet).start()

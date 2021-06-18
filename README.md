@@ -72,7 +72,7 @@ Network:
   interface: enp4s0
 
 Server:
-  host: 52.174.196.146
+  ip: 52.174.196.146
   port: 5122
 
 Game:
@@ -138,20 +138,33 @@ rules.
 
 ### Examples
 
-Setting of network and the game connection.
+The required fields for the `Server` information are `ip`, `port` or both.
 
 ```yaml
 Network:
   interface: enp4s0
 
 Server:
-  host: 52.174.196.146
+  ip: 52.174.196.146
   port: 5122
 ```
 
 ---
 
-This is the basic structure without any rule
+The default protocol is `TCP` but you can assign the `UDP`.
+
+```yaml
+Network:
+  interface: enp4s0
+
+Server:
+  protocol: UDP
+  port: 6666
+```
+
+---
+
+This is the basic structure without any rule.
 
 ```yaml
 Game:

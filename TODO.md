@@ -5,18 +5,19 @@
 - [ ] `ELF64` binary file in Linux.
     - [ ] Create executable file in Linux.
     - [ ] Build the executable file in the GitHub workflows.
-- [ ] Core module. Extractions and refactors.
+- [ ] Documentation for the different options in settings.
+    - [x] Types: [Python Structs][structs].
+    - [ ] Linux: Man page.
+- [ ] Add injection of packages.
+    - [ ] Run a thread which capture the keyboard events and do some
+      injections.
+- [ ] Add screen filter. Keep internally the outputs and provide commands to
+  the user to search specific outputs.
+
+- [x] Add UDP protocol for the sniffer.
+- [x] Core module. Extractions and refactors.
     - [x] Create a Python packages (https://pypi.org/) for the `core` module.
-        - [x] Name of the project: `SniParInject` = Sniffer, Parser and
-          Inject.
-        - [ ] Documentation for the different options in settings.
-            - [x] Types: [Python Structs][structs].
-            - [ ] Linux: Man page.
-    - [ ] Add injection of packages.
-        - [ ] Run a thread which capture the keyboard events and do some
-          injections.
-    - [ ] Add screen filter. Keep internally the outputs and provide commands
-      to the user to search specific outputs.
+        - [x] Name of the project: `SniParInject` = Sniffer, Parser and Inject.
 
 ## Feature
 
