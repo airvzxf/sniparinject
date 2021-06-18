@@ -10,7 +10,5 @@ python3 -m venv ../venv
 source ../venv/bin/activate
 pip install --upgrade setuptools pip
 pip install -r ../requirements.txt
-cp -p ../README.md ../LICENSE .
 pip install -e .
-rm -f README.md LICENSE
 deactivate
