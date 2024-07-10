@@ -7,3 +7,4 @@ pylint>=2.8.3
 pytest>=6.2.4
 scapy>=2.4.5
 setuptools>=57.0.0
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
