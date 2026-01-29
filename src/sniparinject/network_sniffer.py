@@ -80,10 +80,10 @@ class NetworkSniffer:
         """
         ip_layer = packet.getlayer(IP)
         if not ip_layer:
-            raise Exception('Error: The IP layer not exists in this package.')
+            raise RuntimeError('Error: The IP layer not exists in this package.')
 
         if not (packet.haslayer(TCP) or packet.haslayer(UDP)):
-            raise Exception('Error: The protocol layer (TCP or UDP) not exists in this package.')
+            raise RuntimeError('Error: The protocol layer (TCP or UDP) not exists in this package.')
 
         layer_type = packet.getlayer(UDP) if self.protocol == 'udp' else packet.getlayer(TCP)
 

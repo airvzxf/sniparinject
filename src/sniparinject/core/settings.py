@@ -31,10 +31,10 @@ class Settings:
         :rtype: dict
         :return: The settings for Python usage.
         """
-        with open(self.config_file) as file:
+        with open(self.config_file, encoding='utf-8') as file:
             settings = load(file, Loader=FullLoader)
 
             if not settings:
-                raise Exception(f'Error: Not found settings in the file `{self.config_file}`.')
+                raise ValueError(f'Error: Not found settings in the file `{self.config_file}`.')
 
             return settings

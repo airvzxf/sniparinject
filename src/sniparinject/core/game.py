@@ -57,7 +57,6 @@ class Game:
             error_message, error_location = self._extract_exception(error)
             error_location = f'Class Game{error_location}'
             self._print_error(error_message, error_location)
-            return
 
     @staticmethod
     def _extract_exception(error: Exception) -> tuple[str, str]:
@@ -95,7 +94,7 @@ class Game:
         """
         message, extracted_location = self._extract_exception(error)
         full_location = f'{location}{extracted_location}'
-        raise Exception(message, full_location)
+        raise RuntimeError(message, full_location)
 
     def _print_error(self, error: str, location: str) -> None:
         """
@@ -164,7 +163,7 @@ class Game:
         :rtype: dict
         :return: The actions with the settings.
         """
-        settings_exception = Exception('The Game settings are missing.',
+        settings_exception = RuntimeError('The Game settings are missing.',
                                        ' -> Settings(...).get(\'Game\')')
 
         general_settings = {}
