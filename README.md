@@ -23,7 +23,7 @@ python3 -m pip install sniparinject
 ### As a developer
 
 The only two special Python's packages that you need are `scapy` and
-`PyYAML`, the suggested version of `Python` is `>= 3.9`. Follow the commands to
+`PyYAML`, the suggested version of `Python` is `>= 3.10`. Follow the commands to
 set up and install this package.
 
 ```bash
