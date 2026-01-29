@@ -1,10 +1,10 @@
-PyYAML==6.0.3
-coverage==7.13.2
-flake8==7.3.0
-mock-open==1.4.0
+PyYAML>=6.0.3
+coverage>=7.13.2
+flake8>=7.3.0
+mock-open>=1.4.0
 pip>=21.1.2
-pylint==4.0.4
-pytest==9.0.2
-scapy==2.7.0
-setuptools==80.10.2
-zipp==3.23.0 # not directly required, pinned by Snyk to avoid a vulnerability
+pylint>=4.0.4
+pytest>=9.0.2
+scapy>=2.7.0
+setuptools>=80.10.2
+zipp>=3.23.0 # not directly required, pinned by Snyk to avoid a vulnerability
