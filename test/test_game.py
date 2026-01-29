@@ -133,13 +133,13 @@ class TestGame:
         expected_extra_location = 'Play on the table'
         exception = FileNotFoundError(expected_message, expected_location)
 
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             # Act
             game = Game('', '', IP() / Raw())
             game._raise_exception(exception, expected_extra_location)
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_message, expected_extra_location + expected_location)
 
     @patch('builtins.print')
@@ -196,11 +196,11 @@ class TestGame:
 
         # Act
         game = Game('', '', packet)
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             game._parse_packets()
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('src.sniparinject.core.game.Game._execute_action')
@@ -219,11 +219,11 @@ class TestGame:
 
         # Act
         game = Game('', '', packet)
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             game._parse_packets()
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('builtins.print')
@@ -351,11 +351,11 @@ class TestGame:
 
         # Act
         game = Game('', '', IP() / Raw())
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             game._get_settings()
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('src.sniparinject.core.game.Settings.get_dictionary')
@@ -367,11 +367,11 @@ class TestGame:
 
         # Act
         game = Game('', '', IP() / Raw())
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             game._get_settings()
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('src.sniparinject.core.game.Game._convert_structs_to_format')
@@ -444,11 +444,11 @@ class TestGame:
 
         # Act
         game = Game('', '', IP() / Raw())
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             game._validate_action({}, expected_location)
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_message, expected_location)
 
     def test__validate_structs(self):
@@ -546,11 +546,11 @@ class TestGame:
 
         # Act
         game = Game('', '', IP() / Raw())
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             message, size = game._join_structs(structs, expected_location)
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_message, expected_location)
         # assert message == ''
         # assert size == 0
@@ -919,11 +919,11 @@ class TestGame:
 
         # Act
         game = Game('', '', IP() / Raw())
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             game._get_struct(struct_type)
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_message, expected_location)
 
     def test__get_data(self):

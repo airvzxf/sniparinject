@@ -5,7 +5,7 @@ Unit Test.
 """
 from unittest.mock import patch, MagicMock
 
-from _pytest.python_api import raises
+from pytest import raises
 from scapy.layers.inet import TCP, IP, UDP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
@@ -174,11 +174,11 @@ class TestNetworkSniffer:
 
         # Act
         network_sniffer = NetworkSniffer('')
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             network_sniffer._sniff_data(IP() / Raw(b'\xff'))
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_message,)
         mock_game.assert_not_called()
 
@@ -251,7 +251,7 @@ class TestNetworkSniffer:
         expected_settings_path = 'hello-from-the-other-side.yml'
         expected_host = True
         host_ip = '2.21.25.218'
-        host_port = '5153'
+        host_port = 5153
         expected_packet: Ether = UDP(sport=host_port) / IP(src=host_ip) / Raw(b'\x00\x01\x02')
         mock_settings.return_value = {
             'Network': {'interface': ''},
@@ -279,10 +279,10 @@ class TestNetworkSniffer:
 
         # Act
         network_sniffer = NetworkSniffer('')
-        with raises(Exception) as error:
+        with raises(RuntimeError) as error:
             network_sniffer._sniff_data(expected_packet)
 
         # Assert
-        assert error.type == Exception
+        assert error.type == RuntimeError
         assert error.value.args == (expected_message,)
         mock_game.assert_not_called()
