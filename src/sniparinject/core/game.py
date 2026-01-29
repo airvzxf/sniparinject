@@ -164,7 +164,7 @@ class Game:
         :return: The actions with the settings.
         """
         settings_exception = RuntimeError('The Game settings are missing.',
-                                       ' -> Settings(...).get(\'Game\')')
+                                          ' -> Settings(...).get(\'Game\')')
 
         general_settings = {}
         try:
