@@ -14,6 +14,10 @@
 - [ ] Add screen filter. Keep internally the outputs and provide commands to
   the user to search specific outputs.
 
+- [ ] Versioning: the `0.0.0.devN` pre-releases are already stable. Move to
+  `0.1.0` (or `1.0.0`) when the settings keys are considered final, for
+  example together with the packet injection.
+
 - [x] Add UDP protocol for the sniffer.
 - [x] Core module. Extractions and refactors.
     - [x] Create a Python packages (https://pypi.org/) for the `core` module.
