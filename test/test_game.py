@@ -185,6 +185,27 @@ class TestGame:
         mock__execute_action.assert_called_once_with(expected_action)
         mock__display_message.assert_called_once_with(expected_action, mock__execute_action.return_value)
 
+    @patch('src.sniparinject.core.game.Game._display_message')
+    @patch('src.sniparinject.core.game.Game._execute_action')
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test__parse_packets_unsigned_packet_id(self,
+                                               mock__get_settings: MagicMock,
+                                               mock__execute_action: MagicMock,
+                                               mock__display_message: MagicMock):
+        # Arrange
+        data = b'\x01\x80'
+        packet = IP() / Raw(data)
+        expected_action = {'hello': 'world!'}
+        mock__get_settings.return_value = {'actions': {0x8001: expected_action}}
+
+        # Act
+        game = Game('', '', packet)
+        game._parse_packets()
+
+        # Assert
+        mock__execute_action.assert_called_once_with(expected_action)
+        mock__display_message.assert_called_once_with(expected_action, mock__execute_action.return_value)
+
     @patch('src.sniparinject.core.game.Game._get_settings')
     def test__parse_packets_exception_settings(self, mock__get_settings: MagicMock):
         # Arrange

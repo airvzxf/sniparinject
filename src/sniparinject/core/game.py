@@ -134,7 +134,7 @@ class Game:
         except Exception as error:
             self._raise_exception(error, exception_location)
 
-        packet_id, = unpack('<h', self._get_data(2))
+        packet_id, = unpack('<H', self._get_data(2))
         actions = settings.get('actions') or {}
         if packet_id in actions.keys():
             action = actions.get(packet_id) or {}
