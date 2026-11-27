@@ -5,7 +5,6 @@ Unit Test.
 """
 from unittest.mock import patch, MagicMock
 
-from pytest import raises
 from scapy.layers.inet import TCP, IP, UDP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
@@ -166,7 +165,6 @@ class TestNetworkSniffer:
     @patch('src.sniparinject.network_sniffer.Game')
     def test__sniff_data_request_without_tcp(self, mock_game: MagicMock, mock_settings: MagicMock):
         # Arrange
-        expected_message = 'Error: The protocol layer (TCP or UDP) not exists in this package.'
         mock_settings.return_value = {
             'Network': {'interface': ''},
             'Server': {'ip': '987', 'port': 98},
@@ -174,12 +172,25 @@ class TestNetworkSniffer:
 
         # Act
         network_sniffer = NetworkSniffer('')
-        with raises(RuntimeError) as error:
-            network_sniffer._sniff_data(IP() / Raw(b'\xff'))
+        network_sniffer._sniff_data(IP() / Raw(b'\xff'))
 
         # Assert
-        assert error.type == RuntimeError
-        assert error.value.args == (expected_message,)
+        mock_game.assert_not_called()
+
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    @patch('src.sniparinject.network_sniffer.Game')
+    def test__sniff_data_skip_packet_with_other_protocol(self, mock_game: MagicMock, mock_settings: MagicMock):
+        # Arrange
+        mock_settings.return_value = {
+            'Network': {'interface': ''},
+            'Server': {'protocol': 'udp', 'ip': '12.218.12.2', 'port': 541},
+        }
+
+        # Act
+        network_sniffer = NetworkSniffer('')
+        network_sniffer._sniff_data(IP() / TCP() / Raw(b'\xff'))
+
+        # Assert
         mock_game.assert_not_called()
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
@@ -268,9 +279,8 @@ class TestNetworkSniffer:
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
     @patch('src.sniparinject.network_sniffer.Game')
-    def test__sniff_data_raise_exception_ip_layer_missing(self, mock_game: MagicMock, mock_settings: MagicMock):
+    def test__sniff_data_skip_packet_without_ip_layer(self, mock_game: MagicMock, mock_settings: MagicMock):
         # Arrange
-        expected_message = 'Error: The IP layer not exists in this package.'
         expected_packet: Ether = UDP() / Raw()
         mock_settings.return_value = {
             'Network': {'interface': ''},
@@ -279,10 +289,7 @@ class TestNetworkSniffer:
 
         # Act
         network_sniffer = NetworkSniffer('')
-        with raises(RuntimeError) as error:
-            network_sniffer._sniff_data(expected_packet)
+        network_sniffer._sniff_data(expected_packet)
 
         # Assert
-        assert error.type == RuntimeError
-        assert error.value.args == (expected_message,)
         mock_game.assert_not_called()

@@ -3,6 +3,8 @@
 """
 Unit Test.
 """
+from os import utime
+from pathlib import Path
 from unittest.mock import patch
 
 from mock_open import MockOpen
@@ -55,3 +57,34 @@ class TestSettings:
                     # Assert
                     error_expected = f'Error: Not found settings in the file `{file_name}`.'
                     assert str(error) == error_expected
+
+    def test_get_dictionary_cached_until_file_changes(self, tmp_path: Path):
+        # Arrange
+        file_name = tmp_path / 'settings.yml'
+        file_name.write_text(dump({'Version': 1}), encoding='utf-8')
+        settings = Settings(str(file_name))
+        first = settings.get_dictionary()
+
+        # Act
+        with patch('src.sniparinject.core.settings.load') as mock_load:
+            cached = settings.get_dictionary()
+
+        # Assert
+        assert cached is first
+        mock_load.assert_not_called()
+
+    def test_get_dictionary_reload_when_file_changes(self, tmp_path: Path):
+        # Arrange
+        file_name = tmp_path / 'settings.yml'
+        file_name.write_text(dump({'Version': 1}), encoding='utf-8')
+        settings = Settings(str(file_name))
+        assert settings.get_dictionary() == {'Version': 1}
+        file_name.write_text(dump({'Version': 2}), encoding='utf-8')
+        modified_time = file_name.stat().st_mtime_ns + 1_000_000_000
+        utime(file_name, ns=(modified_time, modified_time))
+
+        # Act
+        reloaded = settings.get_dictionary()
+
+        # Assert
+        assert reloaded == {'Version': 2}
