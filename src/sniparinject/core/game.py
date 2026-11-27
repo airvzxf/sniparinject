@@ -410,7 +410,8 @@ class Game:
         if struct_output_type and struct_output_type.lower() == 'hex':
             return variable.hex() if isinstance(variable, bytes) else hex(variable)
 
-        if struct_output_type and struct_output_type.lower() == 'text' and isinstance(variable, bytes):
+        is_text = struct_output_type and struct_output_type.lower() == 'text'
+        if is_text and isinstance(variable, bytes):
             return variable.split(b'\x00', 1)[0].decode('utf-8', errors='replace')
 
         return variable
