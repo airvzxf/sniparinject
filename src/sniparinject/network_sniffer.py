@@ -71,6 +71,8 @@ class NetworkSniffer:
     def _sniff_data(self, packet: Ether) -> None:
         """
         Process data provided by the Sniffer.
+        Packets without an IP layer or without the configured protocol layer
+        (TCP or UDP) are skipped, so they do not stop the sniffer.
 
         :type packet: Ether
         :param packet: The sniffed packet.
@@ -79,13 +81,9 @@ class NetworkSniffer:
         :return: Nothing.
         """
         ip_layer = packet.getlayer(IP)
-        if not ip_layer:
-            raise RuntimeError('Error: The IP layer not exists in this package.')
-
-        if not (packet.haslayer(TCP) or packet.haslayer(UDP)):
-            raise RuntimeError('Error: The protocol layer (TCP or UDP) not exists in this package.')
-
         layer_type = packet.getlayer(UDP) if self.protocol == 'udp' else packet.getlayer(TCP)
+        if not ip_layer or not layer_type:
+            return
 
         if self.host_ip and self.host_port:
             is_host = self.host_ip == ip_layer.src and self.host_port == layer_type.sport
