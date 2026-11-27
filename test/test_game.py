@@ -21,6 +21,8 @@ class TestGame:
     style_bold = '\x1b[00;37;100m'
     style_title_host = '\x1b[00;93;44m'
     style_normal_host = '\x1b[00;30;44m'
+    style_light_host = '\x1b[00;96;44m'
+    style_bold_host = '\x1b[00;37;44m'
     style_end = '\x1b[0m'
 
     def test___init__(self):
@@ -1091,3 +1093,147 @@ class TestGame:
 
         # Assert
         assert message == expected_message
+
+    def test__zero_fill_hex(self):
+        # Act / Assert
+        assert Game._zero_fill('0x1e240', 10) == '0x0001e240'
+        assert Game._zero_fill('0x5', 10) == '0x00000005'
+        assert Game._zero_fill('-0x5', 6) == '-0x005'
+
+    def test__zero_fill_not_hex(self):
+        # Act / Assert
+        assert Game._zero_fill(5, 4) == '0005'
+        assert Game._zero_fill('-5', 4) == '-005'
+        assert Game._zero_fill('0x12345', 4) == '0x12345'
+
+    def test__get_struct_output_zero_fill_hex(self):
+        # Arrange
+        struct = {'zero_fill': 8}
+
+        # Act
+        new_variable = Game._get_struct_output_zero_fill(struct, '0x12')
+
+        # Assert
+        assert new_variable == '0x000012'
+
+    def test__get_struct_output_auto_zero_fill_hex(self):
+        # Arrange
+        struct = {'auto_zero_fill': True}
+        game = Game('', '', IP() / Raw())
+
+        # Act
+        small = game._get_struct_output_auto_zero_fill(struct, '0x5', 'unsigned int')
+        big = game._get_struct_output_auto_zero_fill(struct, '0x75bcd15', 'unsigned int')
+
+        # Assert
+        assert small == '0x00000005'
+        assert big == '0x075bcd15'
+
+    def test__execute_action_variable_length_only_header(self):
+        # Arrange
+        game = Game('', True, IP() / Raw(b'\x04\x00\x95\x00'))
+        action = {'title': 'Only header', 'variable_length': True}
+
+        # Act
+        message = game._execute_action(action)
+
+        # Assert
+        assert f'{self.style_bold_host} Length{self.style_end}' in message
+        assert f'{self.style_light_host} 4{self.style_end}' in message
+        assert ' Data' not in message
+        assert game.raw_data_copy == b'\x95\x00'
+
+    def test__execute_action_variable_length_with_structs_and_data(self):
+        # Arrange
+        data = b'\x0b\x00' + b'\x07\x00\x00\x00' + b'\xaa\xbb\xcc' + b'\x7e\x00'
+        game = Game('', '', IP() / Raw(data))
+        action = {
+            'title': 'List',
+            'variable_length': True,
+            'structs': [{'name': 'ID', 'type': 'unsigned int'}],
+        }
+
+        # Act
+        message = game._execute_action(action)
+
+        # Assert
+        assert f'{self.style_light} 11{self.style_end}' in message
+        assert f'{self.style_light} 7{self.style_end}' in message
+        assert f'{self.style_bold} Data{self.style_end}' in message
+        assert f'{self.style_light} aabbcc{self.style_end}' in message
+        assert game.raw_data_copy == b'\x7e\x00'
+
+    def test__execute_action_variable_length_too_long(self):
+        # Arrange
+        game = Game('', '', IP() / Raw(b'\x20\x00\x01\x02'))
+        action = {'title': 'Cut', 'variable_length': True}
+
+        # Act
+        with raises(RuntimeError) as error:
+            game._execute_action(action)
+
+        # Assert
+        assert error.value.args == (
+            'The packet length (32) does not match the data (6 bytes).',
+            ' -> _execute_action()')
+
+    def test__execute_action_variable_length_too_short(self):
+        # Arrange
+        game = Game('', '', IP() / Raw(b'\x02\x00'))
+        action = {'title': 'Short', 'variable_length': True}
+
+        # Act
+        with raises(RuntimeError) as error:
+            game._execute_action(action)
+
+        # Assert
+        assert error.value.args[0] == 'The packet length (2) does not match the data (4 bytes).'
+
+    def test__execute_action_variable_length_missing(self):
+        # Arrange
+        game = Game('', '', IP() / Raw(b'\x01'))
+        action = {'title': 'Missing', 'variable_length': True}
+
+        # Act
+        with raises(RuntimeError) as error:
+            game._execute_action(action)
+
+        # Assert
+        assert error.value.args == ('The variable length packet has no length.', ' -> _execute_action()')
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test__parse_packets_variable_length_then_next_packet(self, mock__get_settings: MagicMock):
+        # Arrange
+        data = b'\x00\x80\x04\x00' + b'\x7e\x00\x01\x00\x00\x00'
+        mock__get_settings.return_value = {'actions': {
+            0x8000: {'title': 'Header only', 'variable_length': True},
+            0x7e: {'title': 'Tick', 'structs': [{'name': 'Tick', 'type': 'unsigned int'}]},
+        }}
+
+        # Act
+        game = Game('', True, IP() / Raw(data))
+        with patch('builtins.print') as mock_print:
+            game._parse_packets()
+
+        # Assert
+        printed = [args[0][0] for args in mock_print.call_args_list]
+        assert len(printed) == 2
+        assert 'Header only' in printed[0]
+        assert 'Tick' in printed[1]
+        assert game.raw_data_copy == b''
+
+    def test__get_struct_output_type_text(self):
+        # Arrange
+        struct = {'type': 'text'}
+
+        # Act / Assert
+        assert Game._get_struct_output_type(struct, b'Bob\x00\x00\xff') == 'Bob'
+        assert Game._get_struct_output_type(struct, b'caf\xc3\xa9') == 'café'
+        assert Game._get_struct_output_type(struct, b'\xff') == '�'
+
+    def test__get_struct_output_type_text_not_bytes(self):
+        # Arrange
+        struct = {'type': 'TEXT'}
+
+        # Act / Assert
+        assert Game._get_struct_output_type(struct, 123) == 123

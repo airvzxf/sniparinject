@@ -199,13 +199,63 @@ class Game:
         self._validate_action(action, exception_location)
         message = self._generate_title_action(action)
 
-        structs = self._validate_structs(action)
-        if not structs:
-            return message
+        next_packets = None
+        if action.get('variable_length'):
+            message_length, next_packets = self._split_variable_length(exception_location)
+            message += message_length
 
-        message += self._convert_structs_to_format(structs, exception_location)
+        structs = self._validate_structs(action)
+        if structs:
+            message += self._convert_structs_to_format(structs, exception_location)
+
+        if next_packets is not None:
+            if len(self.raw_data_copy) > 0:
+                message += self.text_format(' Data', TextStyle.BOLD)
+                message += self.text_format(f' {self.raw_data_copy.hex()}', TextStyle.LIGHT)
+                message += self.text_format(' |')
+            self.raw_data_copy = next_packets
 
         return message
+
+    def _split_variable_length(self, exception_location: str) -> tuple[str, bytes]:
+        """
+        Read the length of a variable length packet and keep only its body.
+
+        The two bytes after the packet id are the total length of the packet,
+        including the id and the length itself. After this call the data to
+        parse is the body of the packet, and the returned bytes are the next
+        packets.
+
+        :type exception_location: str
+        :param exception_location: The function where the exception occurred.
+
+        :rtype: tuple[str, bytes]
+        :return: The message with the length and the data of the next packets.
+        """
+        header_size = 4
+        if len(self.raw_data_copy) < 2:
+            self._raise_exception(
+                Exception('The variable length packet has no length.', exception_location)
+            )
+
+        length, = unpack('<H', self._get_data(2))
+        body_size = length - header_size
+        if body_size < 0 or body_size > len(self.raw_data_copy):
+            self._raise_exception(
+                Exception(
+                    f'The packet length ({length}) does not match the data'
+                    f' ({len(self.raw_data_copy) + header_size} bytes).',
+                    exception_location)
+            )
+
+        next_packets = self.raw_data_copy[body_size:]
+        self.raw_data_copy = self.raw_data_copy[:body_size]
+
+        message = self.text_format(' Length', TextStyle.BOLD)
+        message += self.text_format(f' {length}', TextStyle.LIGHT)
+        message += self.text_format(' |')
+
+        return message, next_packets
 
     def _validate_action(self, action: dict, exception_location: str) -> None:
         """
@@ -360,6 +410,9 @@ class Game:
         if struct_output_type and struct_output_type.lower() == 'hex':
             return variable.hex() if isinstance(variable, bytes) else hex(variable)
 
+        if struct_output_type and struct_output_type.lower() == 'text' and isinstance(variable, bytes):
+            return variable.split(b'\x00', 1)[0].decode('utf-8', errors='replace')
+
         return variable
 
     @staticmethod
@@ -378,9 +431,32 @@ class Game:
         """
         output_zero_fill: int = struct.get('zero_fill') or 0
         if output_zero_fill > 0:
-            return str(variable).zfill(output_zero_fill)
+            return Game._zero_fill(variable, output_zero_fill)
 
         return variable
+
+    @staticmethod
+    def _zero_fill(variable: any, width: int) -> str:
+        """
+        Add zeros to the left until the text has the given width.
+        For a hexadecimal value the zeros go after the `0x` prefix.
+
+        :type variable: any
+        :param variable: The variable which will be filled.
+
+        :type width: int
+        :param width: The width of the text with the zeros.
+
+        :rtype: str
+        :return: The text with the zeros, for example `0x0012`.
+        """
+        text = str(variable)
+        sign = '-' if text.startswith('-') else ''
+        digits = text[len(sign):]
+        if digits.startswith('0x'):
+            return f'{sign}0x{digits[2:].zfill(width - len(sign) - 2)}'
+
+        return text.zfill(width)
 
     def _get_struct_output_auto_zero_fill(self, struct: dict,
                                           variable: any, struct_type: str) -> any:
@@ -405,7 +481,7 @@ class Game:
             _, struct_size = self._get_struct(struct_type)
             struct_size *= 2
             struct_size += 2
-            return str(variable).zfill(struct_size)
+            return self._zero_fill(variable, struct_size)
 
         return variable
 
