@@ -164,6 +164,29 @@ Server:
 
 ---
 
+Read the packets from a capture file (`pcap` or `pcapng`) instead of the
+network interface with `offline`. A relative path is relative to the settings
+file. It does not need root permissions, and only the packets to or from the
+`Server` `ip` and `port` are parsed.
+
+```yaml
+Network:
+  offline: capture.pcapng
+
+Server:
+  ip: 52.174.196.146
+  port: 5122
+```
+
+For example, record the game with `tshark`, which also does not need root when
+your user is in the `wireshark` group.
+
+```bash
+tshark -i enp4s0 -f 'tcp port 5122' -w capture.pcapng
+```
+
+---
+
 This is the basic structure without any rule.
 
 ```yaml
