@@ -377,6 +377,52 @@ Game:
 
 ---
 
+Names and messages are usually `chars` padded with zeros. The `output` type
+`text` decodes them as UTF-8 and stops at the first zero byte. Given the raw
+data `\x95\x00 \x12\x9f\x8e\x06 Bob\x00...`, the output will be
+`<-- Being name | ID 0x068e9f12 | Name Bob |`.
+
+```yaml
+Game:
+  host:
+    actions:
+      0x95:
+        title: Being name
+        structs:
+          - name: ID
+            type: unsigned int
+            output:
+              type: hex
+              auto_zero_fill: Yes
+          - name: Name
+            type: chars
+            size: 24
+            output:
+              type: text
+```
+
+---
+
+Some packets have a variable length: the two bytes after the ID are the total
+length of the packet, including the ID and the length. Set
+`variable_length: Yes` in the action: the `structs` parse the body of the
+packet, the bytes left in the body are displayed as `Data` in hex, and the
+parse continues with the next packet in the same network packet.
+
+Given the raw data `\x00\x80 \x04\x00`, the output will be
+`<-- Header only | Length 4 |`.
+
+```yaml
+Game:
+  host:
+    actions:
+      0x8000:
+        title: Header only
+        variable_length: Yes
+```
+
+---
+
 Take a little break for output and check the `reference` option. In the middle
 time that you are parsing the data, some findings will be discovered for
 example the ID types of the shop options. It is possible to map this
@@ -418,17 +464,17 @@ Game:
 Formatting the `output` is possible with these options `zero_fill`,
 `auto_zero_fill`, `fill` and `fill_left`.
 
-- `zero_fill` - Add zeros to the left for example if you have for digits as an
-  output `0x12` and the property set to `8`, it will display:
-  `00000x12`.
+- `zero_fill` - Add zeros to the left until the value has this width. For a
+  hex value the zeros go after the `0x` prefix: if the output is `0x12` and
+  the property is set to `8`, it will display `0x000012`.
 - `auto_zero_fill` - Add zeros to the left taking the type of the structure.
   For example if you have an `integer` with `byte size of 4`, but the value
   is `5`. The output without this option will be `0x05`, then if your next
   value is `123456789` the output will be `0x75bcd15`. Keep aligned the output
   and using the property `auto_zero_fill: Yes` it will display both numbers
-  as`0000000x05` and `00x75bcd15` because the
+  as `0x00000005` and `0x075bcd15` because the
   `integer` is `4 bytes` equal to `00 00 00 00` plus the pre-fix `0x`, it means
-  10 digits.
+  10 characters.
 - `fill` - Same as `zero_fill` but add blank spaces to the right of the value.
 - `fill_left` - Same as the previous option but add blank spaces to the left of
   the value.
