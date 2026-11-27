@@ -3,7 +3,7 @@
 """
 Unit Test.
 """
-from unittest.mock import patch, MagicMock
+from unittest.mock import call, patch, MagicMock
 
 from scapy.layers.inet import TCP, IP, UDP
 from scapy.layers.l2 import Ether
@@ -63,6 +63,7 @@ class TestNetworkSniffer:
             iface=expected_interface,
             filter=f'{expected_protocol.lower()} and host {expected_ip} and port {expected_port}',
             count=0,
+            store=False,
             prn=network_sniffer._sniff_data
         )
 
@@ -88,6 +89,7 @@ class TestNetworkSniffer:
             iface=expected_interface,
             filter=f'{expected_protocol.lower()}',
             count=0,
+            store=False,
             prn=network_sniffer._sniff_data
         )
 
@@ -115,6 +117,7 @@ class TestNetworkSniffer:
             iface=expected_interface,
             filter=f'{expected_protocol.lower()} and port {expected_host_port}',
             count=0,
+            store=False,
             prn=network_sniffer._sniff_data
         )
 
@@ -142,6 +145,7 @@ class TestNetworkSniffer:
             iface=expected_interface,
             filter=f'{expected_protocol.lower()} and host {expected_host_ip}',
             count=0,
+            store=False,
             prn=network_sniffer._sniff_data
         )
 
@@ -290,6 +294,86 @@ class TestNetworkSniffer:
         # Act
         network_sniffer = NetworkSniffer('')
         network_sniffer._sniff_data(expected_packet)
+
+        # Assert
+        mock_game.assert_not_called()
+
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    @patch('src.sniparinject.network_sniffer.sniff')
+    def test_start_offline(self, mock_sniff: MagicMock, mock_settings: MagicMock):
+        # Arrange
+        mock_settings.return_value = {
+            'Network': {'interface': 'eth0', 'offline': 'capture.pcap'},
+            'Server': {'ip': '1.2.3.4', 'port': 5122},
+        }
+
+        # Act
+        network_sniffer = NetworkSniffer('/the/game/settings.yml')
+        network_sniffer.start()
+
+        # Assert
+        assert network_sniffer.offline == '/the/game/capture.pcap'
+        mock_sniff.assert_called_once_with(
+            offline='/the/game/capture.pcap',
+            count=0,
+            store=False,
+            prn=network_sniffer._sniff_data
+        )
+
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    def test___init___offline_absolute_path(self, mock_settings: MagicMock):
+        # Arrange
+        mock_settings.return_value = {
+            'Network': {'offline': '/captures/game.pcapng'},
+            'Server': {'port': 5122},
+        }
+
+        # Act
+        network_sniffer = NetworkSniffer('settings.yml')
+
+        # Assert
+        assert network_sniffer.offline == '/captures/game.pcapng'
+        assert network_sniffer.interface is None
+
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    @patch('src.sniparinject.network_sniffer.Game')
+    def test__sniff_data_offline_server_packets(self, mock_game: MagicMock, mock_settings: MagicMock):
+        # Arrange
+        host_ip = '52.174.196.146'
+        host_port = 5122
+        from_host: Ether = IP(src=host_ip, dst='10.0.0.2') / TCP(sport=host_port, dport=40000) / Raw(b'\x01')
+        from_node: Ether = IP(src='10.0.0.2', dst=host_ip) / TCP(sport=40000, dport=host_port) / Raw(b'\x02')
+        mock_settings.return_value = {
+            'Network': {'offline': 'capture.pcap'},
+            'Server': {'ip': host_ip, 'port': host_port},
+        }
+
+        # Act
+        network_sniffer = NetworkSniffer('settings.yml')
+        network_sniffer._sniff_data(from_host)
+        network_sniffer._sniff_data(from_node)
+
+        # Assert
+        assert mock_game.call_args_list == [
+            call('settings.yml', True, from_host),
+            call('settings.yml', False, from_node),
+        ]
+
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    @patch('src.sniparinject.network_sniffer.Game')
+    def test__sniff_data_offline_skip_other_packets(self, mock_game: MagicMock, mock_settings: MagicMock):
+        # Arrange
+        other_ip: Ether = IP(src='8.8.8.8', dst='10.0.0.2') / TCP(sport=5122, dport=40000) / Raw(b'\x01')
+        other_port: Ether = IP(src='52.174.196.146', dst='10.0.0.2') / TCP(sport=6901, dport=40000) / Raw(b'\x01')
+        mock_settings.return_value = {
+            'Network': {'offline': 'capture.pcap'},
+            'Server': {'ip': '52.174.196.146', 'port': 5122},
+        }
+
+        # Act
+        network_sniffer = NetworkSniffer('settings.yml')
+        network_sniffer._sniff_data(other_ip)
+        network_sniffer._sniff_data(other_port)
 
         # Assert
         mock_game.assert_not_called()
