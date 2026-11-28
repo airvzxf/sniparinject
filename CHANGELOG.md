@@ -12,6 +12,9 @@ project uses [Semantic Versioning](https://semver.org/).
   file. The package installs it in `share/man/man5`, and CI checks it with
   groff and a test that compares it with the struct types and the settings
   keys.
+- `Display` settings: `include` and `exclude` regular expressions choose
+  which packet lines are printed, and `log_file` keeps every line in a file
+  to search it later. They are read again when the settings file changes.
 
 ## [1.1.0] - 2026-11-28
 

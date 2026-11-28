@@ -3,6 +3,7 @@
 """
 Given a YAML file it get the settings and return a dictionary with them.
 """
+import re
 from os import stat
 from typing import Any, ClassVar
 
@@ -95,6 +96,7 @@ def validate_settings(settings: Any) -> None:
         raise SettingsError('The settings must be a mapping.')
 
     _check_mapping(settings, 'Network', problems, required=False)
+    _check_display(_check_mapping(settings, 'Display', problems, required=False), problems)
     server = _check_mapping(settings, 'Server', problems, required=True)
     protocol = server.get('protocol')
     if protocol is not None and str(protocol).lower() not in PROTOCOLS:
@@ -113,6 +115,40 @@ def validate_settings(settings: Any) -> None:
 
     if problems:
         raise SettingsError('The settings are not valid:\n  - ' + '\n  - '.join(problems))
+
+
+def _check_display(display: dict, problems: list[str]) -> None:
+    """
+    Check the filters and the log file of the `Display` settings.
+
+    :type display: dict
+    :param display: The `Display` settings.
+
+    :type problems: list[str]
+    :param problems: The list where the problems are added.
+
+    :rtype: None
+    :return: Nothing.
+    """
+    for key in ('include', 'exclude'):
+        patterns = display.get(key)
+        if patterns is None:
+            continue
+        if not isinstance(patterns, list):
+            patterns = [patterns]
+        for pattern in patterns:
+            if not isinstance(pattern, str):
+                problems.append(f'Display.{key} `{pattern}` must be text.')
+                continue
+            try:
+                re.compile(pattern)
+            except re.error as error:
+                problems.append(f'Display.{key} `{pattern}` is not a valid regular'
+                                f' expression: {error}.')
+
+    log_file = display.get('log_file')
+    if log_file is not None and not isinstance(log_file, str):
+        problems.append(f'Display.log_file `{log_file}` must be a path.')
 
 
 def _check_mapping(parent: dict, key: str, problems: list[str],

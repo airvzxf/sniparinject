@@ -12,6 +12,7 @@ from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 
 # pylint: disable=import-error
+from .display import show
 from .errors import PARSE_ERRORS, GameError, SettingsError
 from .settings import Settings
 from .structs import STRUCT_TYPES
@@ -217,10 +218,11 @@ class Game:
             actions = settings.get('actions') or {}
             if packet_id not in actions:
                 if self.display_message:
-                    print(f'{self.request.upper()}'
-                          f' | ID {hex(packet_id)}'
-                          f' | {self.raw_data_copy.hex()}')
-                    print(f'     |-> {self.raw_data.hex()}')
+                    show(self.settings_path,
+                         f'{self.request.upper()}'
+                         f' | ID {hex(packet_id)}'
+                         f' | {self.raw_data_copy.hex()}\n'
+                         f'     |-> {self.raw_data.hex()}')
                 return
 
             action = actions.get(packet_id) or {}
@@ -663,11 +665,11 @@ class Game:
         action_display_info = action.get('display_message')
 
         if self.display_message and action_display_info is None:
-            print(message)
+            show(self.settings_path, message)
             return
 
         if action_display_info:
-            print(message)
+            show(self.settings_path, message)
             return
 
     def text_format(self, text: str, style: TextStyle = TextStyle.NORMAL) -> str:

@@ -117,6 +117,11 @@ class TestValidateSettings:
         # Act / Assert: no error
         validate_settings(valid_settings())
 
+    def test_valid_display(self):
+        settings = valid_settings()
+        settings['Display'] = {'include': ['HOST', r'^<-- '], 'exclude': 'Tick', 'log_file': 'out.log'}
+        validate_settings(settings)
+
     def test_only_one_side_without_actions(self):
         # Act / Assert: no error
         validate_settings({'Server': {}, 'Game': {'host': {'display_message': False}}})
@@ -174,6 +179,15 @@ class TestValidateSettings:
          'Game.node.actions.126.structs[0].output.fill_left `a` must be a number.'),
         (lambda s: s['Game']['node']['actions'][0x7e]['structs'][1].update(reference=[1]),
          'Game.node.actions.126.structs[1].reference must be a mapping.'),
+        (lambda s: s.update(Display=['HOST']),
+         'Display must be a mapping.'),
+        (lambda s: s.update(Display={'include': [1]}),
+         'Display.include `1` must be text.'),
+        (lambda s: s.update(Display={'exclude': '('}),
+         'Display.exclude `(` is not a valid regular expression:'
+         ' missing ), unterminated subpattern at position 0.'),
+        (lambda s: s.update(Display={'log_file': True}),
+         'Display.log_file `True` must be a path.'),
     ])
     def test_problem(self, change, problem):
         # Arrange

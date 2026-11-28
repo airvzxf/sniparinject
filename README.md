@@ -191,6 +191,22 @@ tshark -i enp4s0 -f 'tcp port 5122' -w capture.pcapng
 
 ---
 
+Choose which lines are printed with `Display`. The patterns are Python regular
+expressions that match anywhere in the line, without its colors: `include`
+prints only the lines that match one of them, and `exclude` hides the lines
+that match any of them. `log_file` appends every line, also the hidden ones, to
+a file (relative to the settings file), so you can search it later with
+`grep`. Like the rest of the settings, it is read again when the file changes.
+
+```yaml
+Display:
+  include: '^<-- '
+  exclude: [Tick, Ping]
+  log_file: packets.log
+```
+
+---
+
 This is the basic structure without any rule.
 
 ```yaml
