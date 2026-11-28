@@ -1,0 +1,413 @@
+.TH SNIPARINJECT-SETTINGS 5 2026-11-28 "sniparinject" "File Formats Manual"
+.SH NAME
+sniparinject-settings \- settings file of the SniParInject network sniffer and parser
+.SH SYNOPSIS
+.EX
+Network:
+  interface: \fIname\fP | offline: \fIcapture file\fP
+Server:
+  protocol: tcp | udp
+  ip: \fIaddress\fP
+  port: \fInumber\fP
+Game:
+  host | node:
+    display_message: Yes | No
+    actions:
+      \fIpacket id\fP:
+        title: \fItext\fP
+        display_message: Yes | No
+        variable_length: Yes | No
+        structs:
+          \- name: \fItext\fP
+            type: \fIstruct type\fP
+            size: \fInumber\fP
+            reference: \fImapping\fP
+            output:
+              type: hex | text
+              zero_fill: \fInumber\fP
+              auto_zero_fill: Yes | No
+              fill: \fInumber\fP
+              fill_left: \fInumber\fP
+.EE
+.SH DESCRIPTION
+SniParInject reads the packets between this computer and a server, from a
+network interface or from a capture file, and prints one line for each
+packet that the settings describe.
+The settings are a YAML file, usually named
+.IR settings.yml ,
+given to the
+.B NetworkSniffer
+class:
+.PP
+.EX
+from sniparinject.network_sniffer import NetworkSniffer
+
+NetworkSniffer(\(aqsettings.yml\(aq).start()
+.EE
+.PP
+The file is read again when it changes on disk, so the rules of the
+.B Game
+section can be edited while the sniffer runs.
+When the sniffer starts it checks the file and stops with a list of every
+problem found (see
+.BR DIAGNOSTICS ).
+Keys that are not described here are allowed, for example a key that only
+holds YAML anchors.
+.SH NETWORK
+The optional
+.B Network
+mapping tells where the packets come from.
+.TP
+.BI interface: " name"
+The network interface to sniff, for example
+.BR enp4s0 .
+List them with
+.B ip addr
+or
+.BR "ls /sys/class/net" .
+Sniffing an interface needs root permissions.
+.TP
+.BI offline: " file"
+Read the packets from a
+.B pcap
+or
+.B pcapng
+capture file instead of an interface.
+A relative path is relative to the settings file.
+It does not need root permissions.
+Only the packets to or from the
+.B Server
+address and port are parsed.
+.SH SERVER
+The
+.B Server
+mapping is required.
+It selects the connection to read; set
+.BR ip ,
+.B port
+or both.
+.TP
+.BI protocol: " tcp | udp"
+The transport protocol, in any letter case.
+The default is
+.BR tcp .
+.TP
+.BI ip: " address"
+The IP address of the server.
+.TP
+.BI port: " number"
+The port of the server, from 1 to 65535.
+.PP
+Find them with
+.B lsof \-i
+or
+.BR "netstat \-nap" .
+.PP
+With
+.BR tcp ,
+the segments of each direction are joined in sequence order and the
+retransmitted bytes are skipped, so a game packet split across segments is
+parsed once it is complete.
+After a lost segment the stream starts again from the next one.
+.SH GAME
+The
+.B Game
+mapping is required and needs a
+.B host
+or a
+.B node
+mapping, or both.
+.B host
+describes the packets that the server sends, printed after
+.BR "<\-\-" .
+.B node
+describes the packets that this computer sends, printed after
+.BR "\-\->" .
+Each one accepts:
+.TP
+.BI display_message: " Yes | No"
+Print the actions of this side.
+The default is
+.BR Yes .
+An action can override it.
+.TP
+.BI actions: " mapping"
+The actions, keyed by packet id.
+.SS Actions
+A game packet starts with its id, an
+.B unsigned short
+(2 bytes, little-endian): the raw bytes
+.B 7d 00
+are the id
+.BR 0x7d .
+The key of an action is that id as a YAML number, for example
+.B 0x7d
+or
+.BR 125 ;
+a quoted id such as
+.B \(aq0x7d\(aq
+is text and is an error.
+An action with no properties prints only the direction arrow.
+.TP
+.BI title: " text"
+The text printed after the direction arrow.
+.TP
+.BI display_message: " Yes | No"
+Print this action.
+When it is missing, the value of the side is used.
+.TP
+.BI variable_length: " Yes | No"
+The two bytes after the id are the total length of the packet, including
+the id and the length (an
+.BR "unsigned short" ).
+The length is printed as
+.BR Length ,
+the
+.B structs
+parse the body, and the bytes of the body that the
+.B structs
+do not take are printed in hex as
+.BR Data .
+.TP
+.BI structs: " list"
+How to split the bytes after the id, in order.
+Without
+.BR variable_length ,
+the size of the packet is 2 plus the size of its structs, and the next
+packet starts right after it.
+.PP
+An unknown id takes all the data left, because its size is not known.
+Define the actions of the packets that come before the ones you study.
+.SS Structs
+.TP
+.BI name: " text"
+A label printed before the value.
+.TP
+.BI type: " struct type"
+Required.
+How to read the value; see
+.BR "STRUCT TYPES" .
+.TP
+.BI size: " number"
+How many times the type repeats, 0 or more.
+For
+.B chars
+it is the number of bytes: a
+.B chars
+of
+.B size: 24
+is one 24 bytes value.
+.TP
+.BI reference: " mapping"
+A mapping from values to text.
+A value found in it is printed as its text; any other value is printed as
+usual.
+It is usually a YAML alias of a mapping defined elsewhere in the file:
+.RS
+.PP
+.EX
+Game:
+  node:
+    references:
+      shop_options: &shop_options
+        0x0: Buy
+        0x1: Sell
+    actions:
+      0xc5:
+        title: Shop store
+        structs:
+          \- name: ID
+            type: unsigned char
+            reference: *shop_options
+.EE
+.RE
+.TP
+.BI output: " mapping"
+How to print the value; see
+.BR Output .
+.SS Output
+.TP
+.BI type: " hex | text"
+.B hex
+prints a number as
+.B 0x
+and hex digits, and bytes as hex digits.
+.B text
+decodes bytes as UTF\-8 up to the first zero byte, which suits the names
+padded with zeros.
+Without a type, the value is printed as Python prints it, for example
+.BR b\(aq\ex00\ex0f\(aq .
+.TP
+.BI zero_fill: " number"
+Add zeros to the left until the value has this width.
+For a hex value the zeros go after the
+.B 0x
+prefix:
+.B 0x12
+with a width of 8 is
+.BR 0x000012 .
+.TP
+.BI auto_zero_fill: " Yes | No"
+Add zeros to the left up to the width of the struct type: an
+.B unsigned int
+(4 bytes) in hex is printed with 8 digits, for example
+.BR 0x00000005 .
+.TP
+.BI fill: " number"
+Add spaces to the right until the value has this width.
+.TP
+.BI fill_left: " number"
+Add spaces to the left until the value has this width.
+.SH STRUCT TYPES
+The values of
+.B type
+in a struct, in any letter case, with the symbol of the Python
+.B struct
+module and the size in bytes.
+All the values are read in little-endian order.
+.PP
+.TS
+l l l.
+Type	Symbol	Bytes
+char	c	1
+signed char	b	1
+unsigned char	B	1
+bool	?	1
+short	h	2
+unsigned short	H	2
+int	i	4
+unsigned int	I	4
+long	q	8
+unsigned long	Q	8
+half precision	e	2
+float	f	4
+double	d	8
+chars	s	1
+.TE
+.SH OUTPUT
+Each packet is printed on standard output as one line of fields that end
+with
+.BR | ,
+for example:
+.PP
+.EX
+<\-\- Being name | ID 0x068e9f12 | Name Bob |
+.EE
+.PP
+The colors tell
+.B host
+lines from
+.B node
+lines.
+A packet with an id that has no action is printed, when its side displays
+messages, as the side, the id and the data left in hex, followed by a line
+with the whole raw data:
+.PP
+.EX
+HOST | ID 0x7f | 1a2b3c
+     |\-> 7f001a2b3c
+.EE
+.PP
+Parse errors, for example a packet shorter than its structs, are written
+to standard error with the raw data, and the sniffer goes on with the next
+packet.
+.SH DIAGNOSTICS
+When the sniffer starts it stops with
+.B SettingsError
+and a list of every problem when:
+.BR Server " or " Game
+is missing,
+.B Game
+has neither
+.B host
+nor
+.BR node ,
+.B protocol
+is not
+.BR tcp " or " udp ,
+a section, action, struct,
+.B output
+or
+.B reference
+is not a mapping,
+.B structs
+is not a list,
+a packet id is not a number,
+a struct
+.B type
+is unknown,
+a
+.B size
+is not a number of 0 or more,
+or
+.BR zero_fill ,
+.BR fill " or " fill_left
+is not a number.
+A
+.B port
+that is not a number from 1 to 65535 also stops it.
+.SH EXAMPLES
+Print the packets of a game server on port 5122:
+.PP
+.EX
+%YAML 1.1
+\-\-\-
+Network:
+  interface: enp4s0
+
+Server:
+  ip: 52.174.196.146
+  port: 5122
+
+Game:
+  node:
+    actions:
+      0x7d:
+        title: Scenario change
+      0x85:
+        title: Player move to
+        structs:
+          \- type: chars
+            size: 3
+            output:
+              type: hex
+  host:
+    actions:
+      0x78:
+        title: NPC Info
+        structs:
+          \- name: ID
+            type: unsigned int
+            output:
+              type: hex
+              auto_zero_fill: Yes
+          \- name: HP
+            type: unsigned short
+.EE
+.PP
+The bytes
+.B 85 00 a0 7f 18
+sent by this computer print
+.BR "\-\-> Player move to | a07f18 |" .
+.PP
+Parse a capture recorded with
+.BR tshark ,
+without root:
+.PP
+.EX
+tshark \-i enp4s0 \-f \(aqtcp port 5122\(aq \-w capture.pcapng
+.EE
+.PP
+.EX
+Network:
+  offline: capture.pcapng
+.EE
+.SH SEE ALSO
+.BR tshark (1),
+.BR pcap (3PCAP),
+.UR https://docs.python.org/3/library/struct.html#format-characters
+the Python struct module
+.UE ,
+.UR https://github.com/airvzxf/sniparinject
+the SniParInject project
+.UE

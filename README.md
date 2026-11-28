@@ -132,6 +132,10 @@ This example is for the game `Mana Plus`.
 
 ## Settings
 
+The man page `sniparinject-settings(5)` describes every key of the settings
+file. It is installed with the package: `man sniparinject-settings`, or
+`man -l src/man/sniparinject-settings.5` in the cloned repository.
+
 This software **does not need** to **modify** any file in the **source code**.
 Create a `settings.yml` file which is able to add, modify or remove any parse
 rules.

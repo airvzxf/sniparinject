@@ -6,6 +6,13 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- The man page `sniparinject-settings(5)` describes every key of the settings
+  file. The package installs it in `share/man/man5`, and CI checks it with
+  groff and a test that compares it with the struct types and the settings
+  keys.
+
 ## [1.1.0] - 2026-11-28
 
 ### Added

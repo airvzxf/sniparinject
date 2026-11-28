@@ -5,9 +5,9 @@
 - [ ] `ELF64` binary file in Linux.
     - [ ] Create executable file in Linux.
     - [ ] Build the executable file in the GitHub workflows.
-- [ ] Documentation for the different options in settings.
+- [x] Documentation for the different options in settings.
     - [x] Types: [Python Structs][structs].
-    - [ ] Linux: Man page.
+    - [x] Linux: Man page.
 - [ ] Add injection of packages.
     - [ ] Run a thread which capture the keyboard events and do some
       injections.
