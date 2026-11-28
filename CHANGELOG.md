@@ -6,6 +6,8 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-28
+
 ### Added
 
 - Check the settings file when the sniffer starts and list every problem:
@@ -14,14 +16,14 @@ project uses [Semantic Versioning](https://semver.org/).
 - `GameError` and `SettingsError` exceptions. Both are a `RuntimeError`, so
   code that catches `RuntimeError` keeps working (#47).
 - CI: mypy, Ruff and Bandit checks, and a release workflow that publishes
-  to PyPI with Trusted Publishing.
+  to PyPI with Trusted Publishing (#48).
 
 ### Changed
 
 - Parse errors are reported with `logging` (stderr) instead of `print`, so
   they don't mix with the packet lines on stdout (#47).
 - Only a fixed list of parse errors is caught, not every `Exception` (#47).
-- CI tests Python 3.11, 3.12, 3.13 and 3.14 (latest patch of each).
+- CI tests Python 3.11, 3.12, 3.13 and 3.14 (latest patch of each) (#48).
 
 ### Fixed
 
@@ -59,7 +61,8 @@ project uses [Semantic Versioning](https://semver.org/).
 
 - First stable release.
 
-[Unreleased]: https://github.com/airvzxf/sniparinject/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/airvzxf/sniparinject/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/airvzxf/sniparinject/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/airvzxf/sniparinject/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/airvzxf/sniparinject/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/airvzxf/sniparinject/compare/v1.0.0...v1.0.1
