@@ -209,13 +209,15 @@ class TestNetworkSniffer:
             'Server': {'ip': 'goliath.com', 'port': 987},
         }
 
+        mock_game.complete_length.side_effect = lambda _path, _host, data: len(data)
+
         # Act
         network_sniffer = NetworkSniffer(expected_settings_path)
         network_sniffer._sniff_data(expected_packet)
 
         # Assert
         mock_game.assert_called_once_with(
-            expected_settings_path, expected_host, expected_packet)
+            expected_settings_path, expected_host, b'\x00\x01\x02')
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
     @patch('src.sniparinject.network_sniffer.Game')
@@ -230,13 +232,15 @@ class TestNetworkSniffer:
             'Server': {'port': host_port},
         }
 
+        mock_game.complete_length.side_effect = lambda _path, _host, data: len(data)
+
         # Act
         network_sniffer = NetworkSniffer(expected_settings_path)
         network_sniffer._sniff_data(expected_packet)
 
         # Assert
         mock_game.assert_called_once_with(
-            expected_settings_path, expected_host, expected_packet)
+            expected_settings_path, expected_host, b'\x00\x01\x02')
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
     @patch('src.sniparinject.network_sniffer.Game')
@@ -251,13 +255,15 @@ class TestNetworkSniffer:
             'Server': {'ip': host_ip},
         }
 
+        mock_game.complete_length.side_effect = lambda _path, _host, data: len(data)
+
         # Act
         network_sniffer = NetworkSniffer(expected_settings_path)
         network_sniffer._sniff_data(expected_packet)
 
         # Assert
         mock_game.assert_called_once_with(
-            expected_settings_path, expected_host, expected_packet)
+            expected_settings_path, expected_host, b'\x00\x01\x02')
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
     @patch('src.sniparinject.network_sniffer.Game')
@@ -348,6 +354,8 @@ class TestNetworkSniffer:
             'Server': {'ip': host_ip, 'port': host_port},
         }
 
+        mock_game.complete_length.side_effect = lambda _path, _host, data: len(data)
+
         # Act
         network_sniffer = NetworkSniffer('settings.yml')
         network_sniffer._sniff_data(from_host)
@@ -355,8 +363,8 @@ class TestNetworkSniffer:
 
         # Assert
         assert mock_game.call_args_list == [
-            call('settings.yml', True, from_host),
-            call('settings.yml', False, from_node),
+            call('settings.yml', True, b'\x01'),
+            call('settings.yml', False, b'\x02'),
         ]
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
@@ -377,3 +385,39 @@ class TestNetworkSniffer:
 
         # Assert
         mock_game.assert_not_called()
+
+    @patch('src.sniparinject.network_sniffer.Game.start', autospec=True)
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    def test__sniff_data_reassemble_tcp_segments(self, mock_settings: MagicMock, mock_start: MagicMock):
+        # Arrange
+        host_ip = '52.174.196.146'
+        host_port = 5122
+        mock_settings.return_value = {
+            'Network': {'interface': ''},
+            'Server': {'ip': host_ip, 'port': host_port},
+            'Game': {'host': {'actions': {
+                1: {'structs': [{'type': 'int'}]},
+                0x8000: {'variable_length': True},
+            }}},
+        }
+        received = []
+        mock_start.side_effect = lambda game: received.append(game.raw_data)
+
+        def segment(sequence: int, payload: bytes) -> Ether:
+            return IP(src=host_ip, dst='10.0.0.2') / TCP(
+                sport=host_port, dport=40000, seq=sequence) / Raw(payload)
+
+        # Act
+        network_sniffer = NetworkSniffer('settings.yml')
+        network_sniffer._sniff_data(segment(10, b'\x01\x00\x01\x02\x03\x04\x01\x00\x05'))
+        network_sniffer._sniff_data(segment(10, b'\x01\x00\x01\x02\x03\x04\x01\x00\x05'))
+        network_sniffer._sniff_data(segment(19, b'\x06'))
+        network_sniffer._sniff_data(segment(20, b'\x07\x08\x00\x80'))
+        network_sniffer._sniff_data(segment(24, b'\x05\x00\xff'))
+
+        # Assert
+        assert received == [
+            b'\x01\x00\x01\x02\x03\x04',
+            b'\x01\x00\x05\x06\x07\x08',
+            b'\x00\x80\x05\x00\xff',
+        ]

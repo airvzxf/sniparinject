@@ -52,6 +52,104 @@ class TestGame:
         # Assert
         assert game.request == 'host'
 
+    def test___init___bytes(self):
+        # Arrange
+        expected_data = b'\x04\x05'
+
+        # Act
+        game = Game('', False, expected_data)
+
+        # Assert
+        assert game.raw_data == expected_data
+        assert game.raw_data_copy == expected_data
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_without_settings(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.side_effect = RuntimeError('The Game settings are missing.')
+
+        # Act
+        size = Game.complete_length('', False, b'\x01\x02\x03')
+
+        # Assert
+        assert size == 3
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_unknown_id(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.return_value = {'actions': {1: {'title': 'One'}}}
+
+        # Act
+        size = Game.complete_length('', False, b'\x01\x00\x07\x00\xff')
+
+        # Assert
+        assert size == 5
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_fixed_packets(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.return_value = {'actions': {
+            1: {'structs': [{'type': 'unsigned short'}]},
+            2: {'structs': [{'type': 'int'}]},
+            3: None,
+        }}
+        data = b'\x01\x00\xaa\xbb' + b'\x03\x00' + b'\x02\x00\x01\x02'
+
+        # Act
+        size = Game.complete_length('', False, data)
+
+        # Assert
+        assert size == 6
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_half_packet_id(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.return_value = {'actions': {1: {}}}
+
+        # Act
+        size = Game.complete_length('', False, b'\x01\x00\x01')
+
+        # Assert
+        assert size == 2
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_variable_length(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.return_value = {'actions': {0x8000: {'variable_length': True}}}
+        complete = b'\x00\x80\x06\x00\xaa\xbb'
+
+        # Act
+        sizes = [
+            Game.complete_length('', False, complete),
+            Game.complete_length('', False, complete + b'\x00\x80\x06'),
+            Game.complete_length('', False, complete + b'\x00\x80\x06\x00\xaa'),
+        ]
+
+        # Assert
+        assert sizes == [6, 6, 6]
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_variable_length_too_short(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.return_value = {'actions': {0x8000: {'variable_length': True}}}
+
+        # Act
+        size = Game.complete_length('', False, b'\x00\x80\x02\x00\xaa')
+
+        # Assert
+        assert size == 5
+
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test_complete_length_unknown_struct_type(self, mock__get_settings: MagicMock):
+        # Arrange
+        mock__get_settings.return_value = {'actions': {1: {'structs': [{'type': 'quaternion'}]}}}
+
+        # Act
+        size = Game.complete_length('', False, b'\x01\x00\xaa')
+
+        # Assert
+        assert size == 3
+
     @patch('src.sniparinject.core.game.Game._parse_packets')
     def test__start(self, mock_parse_packets: MagicMock):
         # Arrange

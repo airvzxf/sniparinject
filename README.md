@@ -423,6 +423,18 @@ Game:
 
 ---
 
+With the `TCP` protocol, one game packet can be split across two or more TCP
+segments, and one segment can hold several game packets. The sniffer joins the
+segments of each direction in sequence order, skips the retransmitted bytes,
+and parses only the complete packets: the size of a packet is its ID plus its
+`structs`, or the length after the ID with `variable_length: Yes`. The bytes of
+an incomplete packet wait for the next segment. An unknown ID takes all the
+data left, because its size is not known, so define the actions of the packets
+that come before the ones you study. After a lost segment the stream starts
+again from the next one.
+
+---
+
 Take a little break for output and check the `reference` option. In the middle
 time that you are parsing the data, some findings will be discovered for
 example the ID types of the shop options. It is possible to map this
