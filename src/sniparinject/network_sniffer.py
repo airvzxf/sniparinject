@@ -46,7 +46,7 @@ class NetworkSniffer:
         protocol = settings.get('Server').get('protocol') or 'tcp'
         self.protocol = protocol.lower()
         self.host_ip = settings.get('Server').get('ip') or None
-        self.host_port = settings.get('Server').get('port') or None
+        self.host_port = self._parse_port(settings.get('Server').get('port'))
         print()
         print('=== Network Sniffer ===')
         if self.offline:
@@ -89,6 +89,30 @@ class NetworkSniffer:
             store=False,
             prn=self._sniff_data
         )
+
+    @staticmethod
+    def _parse_port(port: int | str | None) -> int | None:
+        """
+        Convert the server port of the settings to a number.
+
+        :type port: int | str | None
+        :param port: The port from the settings, as a number or as text.
+
+        :rtype: int | None
+        :return: The port, or None when the settings have no port.
+        """
+        if port is None or port == '':
+            return None
+
+        try:
+            number = int(port)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f'Error: The server port `{port}` is not a number.') from error
+
+        if not 1 <= number <= 65535:
+            raise ValueError(f'Error: The server port `{port}` is not between 1 and 65535.')
+
+        return number
 
     @staticmethod
     def _resolve_offline_path(settings_path: str, offline: str | None) -> str | None:
@@ -163,6 +187,7 @@ class NetworkSniffer:
             self._start_stream(ip_layer, layer_type)
 
         if not packet.haslayer(Raw):
+            self._close_stream(ip_layer, layer_type)
             return
 
         if self.protocol == 'udp':
@@ -172,6 +197,7 @@ class NetworkSniffer:
         data = self._reassemble(ip_layer, layer_type, raw(packet.getlayer(Raw)), is_host)
         if data:
             Game(self.settings_path, is_host, data).start()
+        self._close_stream(ip_layer, layer_type)
 
     def _start_stream(self, ip_layer: IP, tcp_layer: TCP) -> None:
         """
@@ -197,6 +223,30 @@ class NetworkSniffer:
             return
 
         self.streams[key] = TcpStream(next_sequence)
+
+    def _close_stream(self, ip_layer: IP, layer_type: TCP | UDP) -> None:
+        """
+        Forget the stream of a direction that the connection closed (FIN or
+        RST), so the streams of old connections do not stay in memory. A
+        stream with segments that wait for a gap is kept: the missing bytes
+        can still arrive after the FIN.
+
+        :type ip_layer: IP
+        :param ip_layer: The IP layer of the packet.
+
+        :type layer_type: TCP | UDP
+        :param layer_type: The protocol layer of the packet.
+
+        :rtype: None
+        :return: Nothing.
+        """
+        if self.protocol == 'udp' or not (layer_type.flags.F or layer_type.flags.R):
+            return
+
+        key = (ip_layer.src, layer_type.sport, ip_layer.dst, layer_type.dport)
+        stream = self.streams.get(key)
+        if stream and not stream.pending:
+            del self.streams[key]
 
     def _reassemble(self, ip_layer: IP, tcp_layer: TCP, payload: bytes, is_host: bool) -> bytes:
         """

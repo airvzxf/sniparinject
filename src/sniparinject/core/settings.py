@@ -5,7 +5,7 @@ Given a YAML file it get the settings and return a dictionary with them.
 """
 from os import stat
 
-from yaml import load, FullLoader
+from yaml import safe_load
 
 
 # pylint: disable=too-few-public-methods
@@ -44,7 +44,7 @@ class Settings:
             return cached[1]
 
         with open(self.config_file, encoding='utf-8') as file:
-            settings = load(file, Loader=FullLoader)
+            settings = safe_load(file)
 
         if not settings:
             raise ValueError(f'Error: Not found settings in the file `{self.config_file}`.')

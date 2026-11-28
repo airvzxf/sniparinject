@@ -386,7 +386,7 @@ class TestGame:
     @patch('src.sniparinject.core.game.Game._display_message')
     @patch('src.sniparinject.core.game.Game._execute_action')
     @patch('src.sniparinject.core.game.Game._get_settings')
-    def test__parse_packets_call_itself_recursively(self,
+    def test__parse_packets_several_packets(self,
                                                     mock__get_settings: MagicMock,
                                                     mock__execute_action: MagicMock,
                                                     mock__display_message: MagicMock):
@@ -403,6 +403,39 @@ class TestGame:
 
         # Assert
         assert mock__get_settings.call_count == 2
+
+    @patch('src.sniparinject.core.game.Game._display_message')
+    @patch('src.sniparinject.core.game.Game._execute_action')
+    @patch('src.sniparinject.core.game.Game._get_settings')
+    def test__parse_packets_many_packets_without_recursion(self,
+                                                           mock__get_settings: MagicMock,
+                                                           mock__execute_action: MagicMock,
+                                                           mock__display_message: MagicMock):
+        # Arrange
+        count = 5000
+        packet = IP() / Raw(b'\x02\x00' * count)
+        mock__get_settings.return_value = {'actions': {2: ''}}
+        mock__execute_action.return_value = {}
+        mock__display_message.return_value = None
+
+        # Act
+        game = Game('', '', packet)
+        game._parse_packets()
+
+        # Assert
+        assert mock__display_message.call_count == count
+
+    @patch('src.sniparinject.core.game.Settings.get_dictionary')
+    def test__get_settings_display_message_zero(self, mock_settings):
+        # Arrange
+        mock_settings.return_value = {'Game': {'node': {'display_message': 0}}}
+
+        # Act
+        game = Game('', '', IP() / Raw())
+        game._get_settings()
+
+        # Assert
+        assert game.display_message is False
 
     @patch('src.sniparinject.core.game.Settings.get_dictionary')
     def test__get_settings(self, mock_settings):

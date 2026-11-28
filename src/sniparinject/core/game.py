@@ -207,15 +207,23 @@ class Game:
         :return: Nothing.
         """
         exception_location = ' -> _parse_packets()'
-        settings = {}
-        try:
-            settings = self._get_settings()
-        except Exception as error:
-            self._raise_exception(error, exception_location)
+        while True:
+            settings = {}
+            try:
+                settings = self._get_settings()
+            except Exception as error:
+                self._raise_exception(error, exception_location)
 
-        packet_id, = unpack('<H', self._get_data(2))
-        actions = settings.get('actions') or {}
-        if packet_id in actions.keys():
+            packet_id, = unpack('<H', self._get_data(2))
+            actions = settings.get('actions') or {}
+            if packet_id not in actions.keys():
+                if self.display_message:
+                    print(f'{self.request.upper()}'
+                          f' | ID {hex(packet_id)}'
+                          f' | {self.raw_data_copy.hex()}')
+                    print(f'     |-> {self.raw_data.hex()}')
+                return
+
             action = actions.get(packet_id) or {}
             message = ''
             try:
@@ -223,16 +231,9 @@ class Game:
             except Exception as error:
                 self._raise_exception(error, exception_location)
             self._display_message(action, message)
-        else:
-            if self.display_message:
-                print(f'{self.request.upper()}'
-                      f' | ID {hex(packet_id)}'
-                      f' | {self.raw_data_copy.hex()}')
-                print(f'     |-> {self.raw_data.hex()}')
-            return
 
-        if len(self.raw_data_copy) > 0:
-            self._parse_packets()
+            if len(self.raw_data_copy) < 1:
+                return
 
     # noinspection PyBroadException
     def _get_settings(self) -> dict:
@@ -259,7 +260,8 @@ class Game:
         else:
             settings = general_settings.get('node') or {}
 
-        self.display_message: bool = settings.get('display_message') is not (None or False)
+        display_message = settings.get('display_message')
+        self.display_message = True if display_message is None else bool(display_message)
 
         return settings
 
