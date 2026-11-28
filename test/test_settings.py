@@ -66,7 +66,7 @@ class TestSettings:
         first = settings.get_dictionary()
 
         # Act
-        with patch('src.sniparinject.core.settings.load') as mock_load:
+        with patch('src.sniparinject.core.settings.safe_load') as mock_load:
             cached = settings.get_dictionary()
 
         # Assert
