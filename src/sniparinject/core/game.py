@@ -3,7 +3,7 @@
 """
 Parse the game data.
 """
-from struct import unpack
+from struct import unpack, unpack_from
 
 from scapy.compat import raw
 from scapy.layers.l2 import Ether
@@ -20,7 +20,7 @@ class Game:
     Parse the game data.
     """
 
-    def __init__(self, settings_path: str, is_host: bool, packet: Ether):
+    def __init__(self, settings_path: str, is_host: bool, packet: Ether | bytes):
         """
         Parse the game data.
 
@@ -30,15 +30,15 @@ class Game:
         :type is_host: bool
         :param is_host: Is this response by the host?
 
-        :type packet: Ether
-        :param packet: Ethernet packet.
+        :type packet: Ether | bytes
+        :param packet: Ethernet packet, or the game data already taken from it.
 
         :rtype: None
         :return: Nothing.
         """
-        raw_layer = packet.getlayer(Raw)
-        self.raw_data = raw(raw_layer)
-        self.raw_data_copy = raw(raw_layer)
+        data = packet if isinstance(packet, bytes) else raw(packet.getlayer(Raw))
+        self.raw_data = data
+        self.raw_data_copy = data
         self.settings_path = settings_path
         self.request = 'host' if is_host else 'node'
         self.display_message = True
@@ -57,6 +57,85 @@ class Game:
             error_message, error_location = self._extract_exception(error)
             error_location = f'Class Game{error_location}'
             self._print_error(error_message, error_location)
+
+    # pylint: disable=broad-except
+    @classmethod
+    def complete_length(cls, settings_path: str, is_host: bool, data: bytes) -> int:
+        """
+        Measure how many bytes at the start of the data are complete packets.
+
+        The size of each packet comes from its action: the id plus its structs,
+        or the length after the id when it is a variable length packet. The
+        bytes after the last complete packet wait for the next TCP segment.
+        An unknown id, or settings that can not give a size, take all the
+        data, so the parser shows it as before.
+
+        :type settings_path: str
+        :param settings_path: The file path with all the settings.
+
+        :type is_host: bool
+        :param is_host: Is this data sent by the host?
+
+        :type data: bytes
+        :param data: The game data, which can end with an incomplete packet.
+
+        :rtype: int
+        :return: The number of bytes of the complete packets.
+        """
+        game = cls(settings_path, is_host, data)
+        try:
+            actions = game._get_settings().get('actions') or {}
+        except Exception:
+            return len(data)
+
+        offset = 0
+        while len(data) - offset >= 2:
+            packet_id, = unpack_from('<H', data, offset)
+            if packet_id not in actions:
+                return len(data)
+
+            size = game._packet_size(actions.get(packet_id) or {}, data, offset)
+            if size is None:
+                return len(data)
+            if offset + size > len(data):
+                break
+            offset += size
+
+        return offset
+
+    # pylint: disable=broad-except
+    def _packet_size(self, action: dict, data: bytes, offset: int) -> int | None:
+        """
+        Get the size of the packet that starts at the offset.
+
+        A variable length packet without its whole header returns the header
+        size, so the caller waits for more data.
+
+        :type action: dict
+        :param action: Properties of the action of the packet.
+
+        :type data: bytes
+        :param data: The game data.
+
+        :type offset: int
+        :param offset: The position of the packet id in the data.
+
+        :rtype: int | None
+        :return: The size of the packet, or None when it can not be known.
+        """
+        header_size = 4
+        if action.get('variable_length'):
+            if len(data) - offset < header_size:
+                return header_size
+            size, = unpack_from('<H', data, offset + 2)
+            return size if size >= header_size else None
+
+        try:
+            _, structs_size = self._join_structs(self._validate_structs(action), '')
+        except Exception:
+            return None
+
+        return 2 + structs_size
 
     @staticmethod
     def _extract_exception(error: Exception) -> tuple[str, str]:

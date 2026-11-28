@@ -7,12 +7,14 @@ from pathlib import Path
 
 from scapy.layers.inet import TCP, UDP, IP
 from scapy.layers.l2 import Ether
+from scapy.compat import raw
 from scapy.packet import Raw
 from scapy.sendrecv import sniff
 
 # pylint: disable=import-error
 from .core.game import Game
 from .core.settings import Settings
+from .core.tcp_stream import TcpStream
 
 
 # pylint: disable=too-few-public-methods
@@ -32,6 +34,7 @@ class NetworkSniffer:
         :return: Nothing.
         """
         self.settings_path = settings_path
+        self.streams: dict[tuple, TcpStream] = {}
         print()
         print('=== Settings ===')
         settings = Settings(settings_path).get_dictionary()
@@ -156,5 +159,41 @@ class NetworkSniffer:
         else:
             is_host = self.host_ip == ip_layer.src or self.host_port == layer_type.sport
 
-        if packet.haslayer(Raw):
+        if not packet.haslayer(Raw):
+            return
+
+        if self.protocol == 'udp':
             Game(self.settings_path, is_host, packet).start()
+            return
+
+        data = self._reassemble(ip_layer, layer_type, raw(packet.getlayer(Raw)), is_host)
+        if data:
+            Game(self.settings_path, is_host, data).start()
+
+    def _reassemble(self, ip_layer: IP, tcp_layer: TCP, payload: bytes, is_host: bool) -> bytes:
+        """
+        Add the TCP payload to the stream of its direction and take the
+        complete game packets. An incomplete packet at the end waits in the
+        stream for the next segment.
+
+        :type ip_layer: IP
+        :param ip_layer: The IP layer of the packet.
+
+        :type tcp_layer: TCP
+        :param tcp_layer: The TCP layer of the packet.
+
+        :type payload: bytes
+        :param payload: The TCP payload of the packet.
+
+        :type is_host: bool
+        :param is_host: Is this packet sent by the host?
+
+        :rtype: bytes
+        :return: The complete game packets, or empty bytes when none is complete.
+        """
+        key = (ip_layer.src, tcp_layer.sport, ip_layer.dst, tcp_layer.dport)
+        stream = self.streams.setdefault(key, TcpStream())
+        stream.add(tcp_layer.seq, payload)
+        size = Game.complete_length(self.settings_path, is_host, stream.buffer)
+
+        return stream.pop(size)
