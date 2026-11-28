@@ -11,7 +11,6 @@ from scapy.packet import Raw
 
 from src.sniparinject.network_sniffer import NetworkSniffer
 
-
 class TestNetworkSniffer:
     style_error = '\x1b[00;37;41m'
     style_end = '\x1b[0m'
@@ -192,7 +191,7 @@ class TestNetworkSniffer:
 
         # Act
         network_sniffer = NetworkSniffer('')
-        network_sniffer._sniff_data(IP() / TCP() / Raw(b'\xff'))
+        network_sniffer._sniff_data(IP() / TCP(flags='PA') / Raw(b'\xff'))
 
         # Assert
         mock_game.assert_not_called()
@@ -203,7 +202,7 @@ class TestNetworkSniffer:
         # Arrange
         expected_settings_path = 'hello-from-the-other-side.yml'
         expected_host = False
-        expected_packet: Ether = TCP() / IP() / Raw(b'\x00\x01\x02')
+        expected_packet: Ether = TCP(flags='PA') / IP() / Raw(b'\x00\x01\x02')
         mock_settings.return_value = {
             'Network': {'interface': ''},
             'Server': {'ip': 'goliath.com', 'port': 987},
@@ -226,7 +225,7 @@ class TestNetworkSniffer:
         expected_settings_path = 'hello-from-the-other-side.yml'
         expected_host = True
         host_port = 987
-        expected_packet: Ether = TCP(sport=host_port) / IP() / Raw(b'\x00\x01\x02')
+        expected_packet: Ether = TCP(sport=host_port, flags='PA') / IP() / Raw(b'\x00\x01\x02')
         mock_settings.return_value = {
             'Network': {'interface': ''},
             'Server': {'port': host_port},
@@ -249,7 +248,7 @@ class TestNetworkSniffer:
         expected_settings_path = 'hello-from-the-other-side.yml'
         expected_host = True
         host_ip = '2.21.25.218'
-        expected_packet: Ether = TCP() / IP(src=host_ip) / Raw(b'\x00\x01\x02')
+        expected_packet: Ether = TCP(flags='PA') / IP(src=host_ip) / Raw(b'\x00\x01\x02')
         mock_settings.return_value = {
             'Network': {'interface': ''},
             'Server': {'ip': host_ip},
@@ -347,8 +346,8 @@ class TestNetworkSniffer:
         # Arrange
         host_ip = '52.174.196.146'
         host_port = 5122
-        from_host: Ether = IP(src=host_ip, dst='10.0.0.2') / TCP(sport=host_port, dport=40000) / Raw(b'\x01')
-        from_node: Ether = IP(src='10.0.0.2', dst=host_ip) / TCP(sport=40000, dport=host_port) / Raw(b'\x02')
+        from_host: Ether = IP(src=host_ip, dst='10.0.0.2') / TCP(sport=host_port, dport=40000, flags='PA') / Raw(b'\x01')
+        from_node: Ether = IP(src='10.0.0.2', dst=host_ip) / TCP(sport=40000, dport=host_port, flags='PA') / Raw(b'\x02')
         mock_settings.return_value = {
             'Network': {'offline': 'capture.pcap'},
             'Server': {'ip': host_ip, 'port': host_port},
@@ -371,8 +370,8 @@ class TestNetworkSniffer:
     @patch('src.sniparinject.network_sniffer.Game')
     def test__sniff_data_offline_skip_other_packets(self, mock_game: MagicMock, mock_settings: MagicMock):
         # Arrange
-        other_ip: Ether = IP(src='8.8.8.8', dst='10.0.0.2') / TCP(sport=5122, dport=40000) / Raw(b'\x01')
-        other_port: Ether = IP(src='52.174.196.146', dst='10.0.0.2') / TCP(sport=6901, dport=40000) / Raw(b'\x01')
+        other_ip: Ether = IP(src='8.8.8.8', dst='10.0.0.2') / TCP(sport=5122, dport=40000, flags='PA') / Raw(b'\x01')
+        other_port: Ether = IP(src='52.174.196.146', dst='10.0.0.2') / TCP(sport=6901, dport=40000, flags='PA') / Raw(b'\x01')
         mock_settings.return_value = {
             'Network': {'offline': 'capture.pcap'},
             'Server': {'ip': '52.174.196.146', 'port': 5122},
@@ -405,7 +404,7 @@ class TestNetworkSniffer:
 
         def segment(sequence: int, payload: bytes) -> Ether:
             return IP(src=host_ip, dst='10.0.0.2') / TCP(
-                sport=host_port, dport=40000, seq=sequence) / Raw(payload)
+                sport=host_port, dport=40000, seq=sequence, flags='PA') / Raw(payload)
 
         # Act
         network_sniffer = NetworkSniffer('settings.yml')
@@ -421,3 +420,68 @@ class TestNetworkSniffer:
             b'\x01\x00\x05\x06\x07\x08',
             b'\x00\x80\x05\x00\xff',
         ]
+
+    @patch('src.sniparinject.network_sniffer.Game.start', autospec=True)
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    def test__sniff_data_syn_starts_new_stream(self, mock_settings: MagicMock, mock_start: MagicMock):
+        # Arrange
+        host_ip = '52.174.196.146'
+        host_port = 5122
+        mock_settings.return_value = {
+            'Network': {'interface': ''},
+            'Server': {'ip': host_ip, 'port': host_port},
+            'Game': {'host': {'actions': {
+                1: {'structs': [{'type': 'int'}]},
+            }}},
+        }
+        received = []
+        mock_start.side_effect = lambda game: received.append(game.raw_data)
+
+        def segment(sequence: int, flags: str, payload: bytes = b'') -> Ether:
+            packet = IP(src=host_ip, dst='10.0.0.2') / TCP(
+                sport=host_port, dport=40000, seq=sequence, flags=flags)
+            return packet / Raw(payload) if payload else packet
+
+        # Act
+        network_sniffer = NetworkSniffer('settings.yml')
+        network_sniffer._sniff_data(segment(1000, 'PA', b'\x01\x00\x01\x02\x03\x04'))
+        network_sniffer._sniff_data(segment(499, 'SA'))
+        network_sniffer._sniff_data(segment(504, 'PA', b'\x03\x04'))
+        network_sniffer._sniff_data(segment(500, 'PA', b'\x01\x00\x01\x02'))
+
+        # Assert
+        assert received == [
+            b'\x01\x00\x01\x02\x03\x04',
+            b'\x01\x00\x01\x02\x03\x04',
+        ]
+
+    @patch('src.sniparinject.network_sniffer.Game.start', autospec=True)
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    def test__sniff_data_retransmitted_syn_keeps_stream(self, mock_settings: MagicMock, mock_start: MagicMock):
+        # Arrange
+        host_ip = '52.174.196.146'
+        host_port = 5122
+        mock_settings.return_value = {
+            'Network': {'interface': ''},
+            'Server': {'ip': host_ip, 'port': host_port},
+            'Game': {'host': {'actions': {
+                1: {'structs': [{'type': 'int'}]},
+            }}},
+        }
+        received = []
+        mock_start.side_effect = lambda game: received.append(game.raw_data)
+
+        def segment(sequence: int, flags: str, payload: bytes = b'') -> Ether:
+            packet = IP(src=host_ip, dst='10.0.0.2') / TCP(
+                sport=host_port, dport=40000, seq=sequence, flags=flags)
+            return packet / Raw(payload) if payload else packet
+
+        # Act
+        network_sniffer = NetworkSniffer('settings.yml')
+        network_sniffer._sniff_data(segment(499, 'SA'))
+        network_sniffer._sniff_data(segment(500, 'PA', b'\x01\x00\x01\x02'))
+        network_sniffer._sniff_data(segment(499, 'SA'))
+        network_sniffer._sniff_data(segment(504, 'PA', b'\x03\x04'))
+
+        # Assert
+        assert received == [b'\x01\x00\x01\x02\x03\x04']

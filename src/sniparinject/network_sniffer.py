@@ -14,7 +14,7 @@ from scapy.sendrecv import sniff
 # pylint: disable=import-error
 from .core.game import Game
 from .core.settings import Settings
-from .core.tcp_stream import TcpStream
+from .core.tcp_stream import SEQUENCE_SIZE, TcpStream
 
 
 # pylint: disable=too-few-public-methods
@@ -159,6 +159,9 @@ class NetworkSniffer:
         else:
             is_host = self.host_ip == ip_layer.src or self.host_port == layer_type.sport
 
+        if self.protocol != 'udp' and layer_type.flags.S:
+            self._start_stream(ip_layer, layer_type)
+
         if not packet.haslayer(Raw):
             return
 
@@ -169,6 +172,31 @@ class NetworkSniffer:
         data = self._reassemble(ip_layer, layer_type, raw(packet.getlayer(Raw)), is_host)
         if data:
             Game(self.settings_path, is_host, data).start()
+
+    def _start_stream(self, ip_layer: IP, tcp_layer: TCP) -> None:
+        """
+        Start a new stream for the direction of a SYN segment. A new
+        connection can use the same addresses and ports as an old one, with
+        any initial sequence number, so the old stream must not be kept.
+        The SYN takes one sequence number: the first data byte follows it.
+        A retransmitted SYN of the stream that is already open keeps it.
+
+        :type ip_layer: IP
+        :param ip_layer: The IP layer of the packet.
+
+        :type tcp_layer: TCP
+        :param tcp_layer: The TCP layer of the SYN segment.
+
+        :rtype: None
+        :return: Nothing.
+        """
+        key = (ip_layer.src, tcp_layer.sport, ip_layer.dst, tcp_layer.dport)
+        next_sequence = (tcp_layer.seq + 1) % SEQUENCE_SIZE
+        stream = self.streams.get(key)
+        if stream and stream.first_sequence == next_sequence:
+            return
+
+        self.streams[key] = TcpStream(next_sequence)
 
     def _reassemble(self, ip_layer: IP, tcp_layer: TCP, payload: bytes, is_host: bool) -> bytes:
         """
