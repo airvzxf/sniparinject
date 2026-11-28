@@ -220,11 +220,11 @@ Game:
 Example for node, which is the raw data send from your computer to the server.
 
 Here will capture all the packets which start with the id `0x7d` equal to the
-raw data `\x00\x7d`. It will print in your console:
+raw data `\x7d\x00`. It will print in your console:
 `--> Scenario change |` every time your computer send to the server this
 packet.
 
-The action `0x85` equal to the raw data `\x00\x85`. It will print in your
+The action `0x85` equal to the raw data `\x85\x00`. It will print in your
 console: `--> Player move to | a07f18 |`. Means the player communicate to the
 server that it is moving to this position.
 
@@ -323,7 +323,7 @@ list of every problem found.
 
 The option `size` returns the number of repeats of this struct. One example is
 if the setting's action has `type: int` and `size: 8`, it will returns
-`4i` and it is exactly the same to write `iiii`. The example below will
+`8i` and it is exactly the same to write `iiiiiiii`. The example below will
 return `5s`.
 
 ```yaml
@@ -336,15 +336,15 @@ structs:
 
 In this example it will take the raw data and split in two. The first is an
 `unsigned int` with `4 bytes` of size and the `char` with `1 byte` of size. The
-raw data could be `\x00\x80 \x0f\x00\x00\x00 \xf8`, I split intentional with
+raw data could be `\x80\x00 \x0f\x00\x00\x00 \xf8`, I split intentional with
 spaces to be more clear. The rule in the example take the first
-`unsigned short` value as an action ID (`\x00\x80` equal to `0x80`), then
+`unsigned short` value as an action ID (`\x80\x00` equal to `0x80`), then
 extract as a `unsigned int` the monster ID, and the last byte as an unknown.
 The output will be `---> NPC Monster Check | ID 0x0000000f | 0xf8 |`. Note in
 the monster ID that the raw data, and the output is different:
-`\x0f\x00\x00\x00` vs `0x0000000f`. It is because the network data is coming
-in `big-endian` and the human / machine-readable for numbers is
-in `little-endian`.
+`\x0f\x00\x00\x00` vs `0x0000000f`. It is because the numbers are read in
+`little-endian`: the first byte is the least significant one, and the output
+writes the most significant digits first.
 
 ```yaml
 Game:
@@ -386,7 +386,7 @@ Game:
 ---
 
 What happen if I do not use the `output` as an `hex`? It will show the raw
-data: `---> NPC Monster Check | ID b'\x00\x00\x00\x0f' |`
+data: `---> NPC Monster Check | ID b'\x0f\x00\x00\x00' |`
 
 ```yaml
 Game:
@@ -468,13 +468,13 @@ information and display as a text in the output. Adding `reference:
 the ID `shop_options: &node_shop_options`. If the value is not in the map, it
 will print as usual.
 
-Given the raw data `\x00\xc5 \x00`, the output will be
+Given the raw data `\xc5\x00 \x00`, the output will be
 `---> Shop store | ID Buy |`.
 
-Given the raw data `\x00\xc5 \x01`, the output will be
+Given the raw data `\xc5\x00 \x01`, the output will be
 `---> Shop store | ID Sell |`.
 
-Given the raw data `\x00\xc5 \x5a`, the output will be
+Given the raw data `\xc5\x00 \x5a`, the output will be
 `---> Shop store | ID 0x5a |`.
 
 ```yaml
@@ -543,9 +543,10 @@ Game:
 
 ## Endian
 
-All the data coming from the network or server usually is big-endian, to read
-this as the game interpretation needs to convert to little-endian. In this
-example if you receive a raw data `ff 00 ab 14 36 f0 1f`. The parse should be:
+The numbers are read in little-endian, the byte order of the game: the first
+byte is the least significant one. The action ID, the `variable_length` length
+and every number struct follow this order. In this example if you receive a raw
+data `ff 00 ab 14 36 f0 1f`. The parse should be:
 
 - ID Action package: `ff 00` = `0x00ff` = `255`.
 - ID Monster: `ab 14 36 f0` = `0xf03614ab`.

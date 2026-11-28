@@ -16,6 +16,12 @@ project uses [Semantic Versioning](https://semver.org/).
   which packet lines are printed, and `log_file` keeps every line in a file
   to search it later. They are read again when the settings file changes.
 
+### Fixed
+
+- README: the examples write the raw data in little-endian, the order the
+  parser reads (`0x7d` is `\x7d\x00`), and `type: int` with `size: 8` is
+  `8i`, not `4i`.
+
 ## [1.1.0] - 2026-11-28
 
 ### Added
