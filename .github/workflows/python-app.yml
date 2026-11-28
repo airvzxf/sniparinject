@@ -55,6 +55,9 @@ jobs:
       - name: Run Bandit
         run: ./script/qa-bandit.bash
 
+      - name: Check the man pages
+        run: ./script/qa-man.bash
+
       - name: Run PyTest
         run: ./script/qa-pytest.bash
 
