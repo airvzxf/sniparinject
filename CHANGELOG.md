@@ -6,27 +6,29 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-28
+
 ### Added
 
 - The man page `sniparinject-settings(5)` describes every key of the settings
   file. The package installs it in `share/man/man5`, and CI checks it with
   groff and a test that compares it with the struct types and the settings
-  keys.
+  keys (#50).
 - `Display` settings: `include` and `exclude` regular expressions choose
   which packet lines are printed, and `log_file` keeps every line in a file
-  to search it later. They are read again when the settings file changes.
+  to search it later. They are read again when the settings file changes (#51).
 - The `sniparinject SETTINGS` command (also `python -m sniparinject`), with
   `--version`. It prints the errors without a traceback and returns 1, or 130
-  on Ctrl+C.
+  on Ctrl+C (#53).
 - A stand-alone ELF64 executable for Linux x86-64, built with PyInstaller.
   CI builds and runs it on a capture file, and the release workflow attaches
-  it, with its SHA-256 checksum, to the GitHub release.
+  it, with its SHA-256 checksum, to the GitHub release (#53).
 
 ### Fixed
 
 - README: the examples write the raw data in little-endian, the order the
   parser reads (`0x7d` is `\x7d\x00`), and `type: int` with `size: 8` is
-  `8i`, not `4i`.
+  `8i`, not `4i` (#52).
 
 ## [1.1.0] - 2026-11-28
 
@@ -83,7 +85,8 @@ project uses [Semantic Versioning](https://semver.org/).
 
 - First stable release.
 
-[Unreleased]: https://github.com/airvzxf/sniparinject/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/airvzxf/sniparinject/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/airvzxf/sniparinject/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/airvzxf/sniparinject/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/airvzxf/sniparinject/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/airvzxf/sniparinject/compare/v1.0.1...v1.0.2
