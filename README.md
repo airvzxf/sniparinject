@@ -20,6 +20,22 @@ Install the package.
 python3 -m pip install sniparinject
 ```
 
+### Executable
+
+Every [release][releases] has a stand-alone ELF64 executable for Linux x86-64,
+`sniparinject-<version>-linux-x86_64`, with its SHA-256 checksum. It doesn't
+need Python. It is built on the latest Ubuntu, so it needs a glibc at least as
+new as that one.
+
+```bash
+sha256sum --check sniparinject-1.2.0-linux-x86_64.sha256
+chmod +x sniparinject-1.2.0-linux-x86_64
+./sniparinject-1.2.0-linux-x86_64 --version
+```
+
+To build it from the source, run `./script/executable-build.bash`: it writes
+`dist/executable/sniparinject`.
+
 ### As a developer
 
 The only two special Python's packages that you need are `scapy` and
@@ -46,7 +62,8 @@ deactivate
 
 ## Usage
 
-The most basic setup is creating one Python file, and the settings file.
+The most basic setup is the settings file and the command `sniparinject`
+(also `python3 -m sniparinject`), or one Python file that uses the package.
 
 `main.py`
 
@@ -120,9 +137,14 @@ check the column `NAME` to review the connection
 Execute the application:
 
 ```bash
-# Execute with root permissions the main script.
+# Execute with root permissions the command, or the main script.
+sudo sniparinject settings.yml
 sudo python3 main.py
 ```
+
+Reading a capture file (`Network.offline`) does not need root. The command
+returns `1` and prints the error when the settings are wrong, and `130` when
+you stop it with `Ctrl+C`.
 
 ### Example
 
@@ -556,6 +578,8 @@ Enjoy!
 
 
 [pypi]: https://pypi.org/project/sniparinject/
+
+[releases]: https://github.com/airvzxf/sniparinject/releases
 
 [todo]: https://github.com/airvzxf/sniparinject/blob/main/TODO.md
 

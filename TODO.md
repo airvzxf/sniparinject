@@ -2,9 +2,9 @@
 
 ## General
 
-- [ ] `ELF64` binary file in Linux.
-    - [ ] Create executable file in Linux.
-    - [ ] Build the executable file in the GitHub workflows.
+- [x] `ELF64` binary file in Linux.
+    - [x] Create executable file in Linux.
+    - [x] Build the executable file in the GitHub workflows.
 - [x] Documentation for the different options in settings.
     - [x] Types: [Python Structs][structs].
     - [x] Linux: Man page.
