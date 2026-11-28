@@ -4,6 +4,7 @@
 Start the sniff of the network packets.
 """
 from pathlib import Path
+from typing import cast
 
 from scapy.layers.inet import TCP, UDP, IP
 from scapy.layers.l2 import Ether
@@ -13,7 +14,7 @@ from scapy.sendrecv import sniff
 
 # pylint: disable=import-error
 from .core.game import Game
-from .core.settings import Settings
+from .core.settings import Settings, validate_settings
 from .core.tcp_stream import SEQUENCE_SIZE, TcpStream
 
 
@@ -39,14 +40,16 @@ class NetworkSniffer:
         print('=== Settings ===')
         settings = Settings(settings_path).get_dictionary()
         print(settings)
+        validate_settings(settings)
 
         network = settings.get('Network') or {}
         self.interface = network.get('interface')
         self.offline = self._resolve_offline_path(settings_path, network.get('offline'))
-        protocol = settings.get('Server').get('protocol') or 'tcp'
-        self.protocol = protocol.lower()
-        self.host_ip = settings.get('Server').get('ip') or None
-        self.host_port = self._parse_port(settings.get('Server').get('port'))
+        server = settings['Server']
+        protocol = server.get('protocol') or 'tcp'
+        self.protocol = str(protocol).lower()
+        self.host_ip = server.get('ip') or None
+        self.host_port = self._parse_port(server.get('port'))
         print()
         print('=== Network Sniffer ===')
         if self.offline:
@@ -170,8 +173,8 @@ class NetworkSniffer:
         :rtype: None
         :return: Nothing.
         """
-        ip_layer = packet.getlayer(IP)
-        layer_type = packet.getlayer(UDP) if self.protocol == 'udp' else packet.getlayer(TCP)
+        ip_layer = cast(IP | None, packet.getlayer(IP))
+        layer_type = cast(TCP | UDP | None, packet.getlayer(UDP if self.protocol == 'udp' else TCP))
         if not ip_layer or not layer_type:
             return
 
@@ -184,7 +187,7 @@ class NetworkSniffer:
             is_host = self.host_ip == ip_layer.src or self.host_port == layer_type.sport
 
         if self.protocol != 'udp' and layer_type.flags.S:
-            self._start_stream(ip_layer, layer_type)
+            self._start_stream(ip_layer, cast(TCP, layer_type))
 
         if not packet.haslayer(Raw):
             self._close_stream(ip_layer, layer_type)
@@ -194,7 +197,8 @@ class NetworkSniffer:
             Game(self.settings_path, is_host, packet).start()
             return
 
-        data = self._reassemble(ip_layer, layer_type, raw(packet.getlayer(Raw)), is_host)
+        payload = raw(cast(Raw, packet.getlayer(Raw)))
+        data = self._reassemble(ip_layer, cast(TCP, layer_type), payload, is_host)
         if data:
             Game(self.settings_path, is_host, data).start()
         self._close_stream(ip_layer, layer_type)

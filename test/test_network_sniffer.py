@@ -11,11 +11,35 @@ from scapy.layers.inet import TCP, IP, UDP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 
+from src.sniparinject.core.errors import SettingsError
 from src.sniparinject.network_sniffer import NetworkSniffer
+
+
+@pytest.fixture(autouse=True)
+def mock_validate_settings():
+    """The settings of these tests are partial, they are checked in test_settings."""
+    with patch('src.sniparinject.network_sniffer.validate_settings') as mock:
+        yield mock
+
 
 class TestNetworkSniffer:
     style_error = '\x1b[00;37;41m'
     style_end = '\x1b[0m'
+
+    @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
+    def test___init___validates_settings(self, mock_settings: MagicMock,
+                                         mock_validate_settings: MagicMock):
+        # Arrange
+        settings = {'Server': {'ip': '1.2.3.4'}}
+        mock_settings.return_value = settings
+        mock_validate_settings.side_effect = SettingsError('The settings are not valid.')
+
+        # Act
+        with pytest.raises(SettingsError):
+            NetworkSniffer('bad-settings.yml')
+
+        # Assert
+        mock_validate_settings.assert_called_once_with(settings)
 
     @patch('src.sniparinject.network_sniffer.Settings.get_dictionary')
     def test___init__(self, mock_settings: MagicMock):

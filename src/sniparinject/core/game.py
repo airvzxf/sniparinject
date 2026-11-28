@@ -3,16 +3,22 @@
 """
 Parse the game data.
 """
+from logging import getLogger
 from struct import unpack, unpack_from
+from typing import Any, NoReturn, cast
 
 from scapy.compat import raw
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 
 # pylint: disable=import-error
+from .errors import PARSE_ERRORS, GameError, SettingsError
 from .settings import Settings
+from .structs import STRUCT_TYPES
 from .text_style import TextStyle
 from .utility import Utility
+
+logger = getLogger(__name__)
 
 
 class Game:
@@ -36,14 +42,13 @@ class Game:
         :rtype: None
         :return: Nothing.
         """
-        data = packet if isinstance(packet, bytes) else raw(packet.getlayer(Raw))
+        data = packet if isinstance(packet, bytes) else raw(cast(Raw, packet.getlayer(Raw)))
         self.raw_data = data
         self.raw_data_copy = data
         self.settings_path = settings_path
         self.request = 'host' if is_host else 'node'
         self.display_message = True
 
-    # pylint: disable=broad-except
     def start(self) -> None:
         """
         Start to process the network packets sniffer and parse.
@@ -53,12 +58,11 @@ class Game:
         """
         try:
             self._parse_packets()
-        except Exception as error:
+        except PARSE_ERRORS as error:
             error_message, error_location = self._extract_exception(error)
             error_location = f'Class Game{error_location}'
             self._print_error(error_message, error_location)
 
-    # pylint: disable=broad-except
     @classmethod
     def complete_length(cls, settings_path: str, is_host: bool, data: bytes) -> int:
         """
@@ -85,7 +89,7 @@ class Game:
         game = cls(settings_path, is_host, data)
         try:
             actions = game._get_settings().get('actions') or {}
-        except Exception:
+        except PARSE_ERRORS:
             return len(data)
 
         offset = 0
@@ -103,7 +107,6 @@ class Game:
 
         return offset
 
-    # pylint: disable=broad-except
     def _packet_size(self, action: dict, data: bytes, offset: int) -> int | None:
         """
         Get the size of the packet that starts at the offset.
@@ -132,7 +135,7 @@ class Game:
 
         try:
             _, structs_size = self._join_structs(self._validate_structs(action), '')
-        except Exception:
+        except PARSE_ERRORS:
             return None
 
         return 2 + structs_size
@@ -158,9 +161,9 @@ class Game:
 
         return message, location
 
-    def _raise_exception(self, error: Exception, location: str = '') -> None:
+    def _raise_exception(self, error: Exception, location: str = '') -> NoReturn:
         """
-        Raise an exception taking the information from the error.
+        Raise a game error taking the information from the error.
 
         :type error: Exception
         :param error: Error exception.
@@ -168,12 +171,13 @@ class Game:
         :type location: str
         :param location: The cascade classes and functions where the error occurred.
 
-        :rtype: tuple[str, str]
-        :return: Return the the error message and the location.
+        :rtype: NoReturn
+        :return: It always raises a GameError, or the SettingsError it was given.
         """
         message, extracted_location = self._extract_exception(error)
         full_location = f'{location}{extracted_location}'
-        raise RuntimeError(message, full_location)
+        error_class = type(error) if isinstance(error, GameError) else GameError
+        raise error_class(message, full_location) from error
 
     def _print_error(self, error: str, location: str) -> None:
         """
@@ -192,13 +196,8 @@ class Game:
         location = Utility.text_error_format(f'Location: {location}')
         data = Utility.text_error_format(f'Data: {self.raw_data.hex()}')
         data_copy = Utility.text_error_format(f'Data Error: {self.raw_data_copy.hex()}')
-        print(message)
-        print(location)
-        print(data)
-        print(data_copy)
-        print()
+        logger.error('%s\n%s\n%s\n%s\n', message, location, data, data_copy)
 
-    # pylint: disable=broad-except
     def _parse_packets(self) -> None:
         """
         Start the parse of the packets.
@@ -211,7 +210,7 @@ class Game:
             settings = {}
             try:
                 settings = self._get_settings()
-            except Exception as error:
+            except PARSE_ERRORS as error:
                 self._raise_exception(error, exception_location)
 
             packet_id, = unpack('<H', self._get_data(2))
@@ -228,14 +227,13 @@ class Game:
             message = ''
             try:
                 message = self._execute_action(action)
-            except Exception as error:
+            except PARSE_ERRORS as error:
                 self._raise_exception(error, exception_location)
             self._display_message(action, message)
 
             if len(self.raw_data_copy) < 1:
                 return
 
-    # noinspection PyBroadException
     def _get_settings(self) -> dict:
         """
         Validate and return the settings dictionary.
@@ -243,13 +241,13 @@ class Game:
         :rtype: dict
         :return: The actions with the settings.
         """
-        settings_exception = RuntimeError('The Game settings are missing.',
-                                          ' -> Settings(...).get(\'Game\')')
+        settings_exception = SettingsError('The Game settings are missing.',
+                                           ' -> Settings(...).get(\'Game\')')
 
-        general_settings = {}
+        general_settings: dict = {}
         try:
             general_settings = Settings(self.settings_path).get_dictionary().get('Game') or {}
-        except Exception:
+        except PARSE_ERRORS:
             self._raise_exception(settings_exception)
 
         if len(general_settings) < 1:
@@ -316,14 +314,14 @@ class Game:
         header_size = 4
         if len(self.raw_data_copy) < 2:
             self._raise_exception(
-                Exception('The variable length packet has no length.', exception_location)
+                GameError('The variable length packet has no length.', exception_location)
             )
 
         length, = unpack('<H', self._get_data(2))
         body_size = length - header_size
         if body_size < 0 or body_size > len(self.raw_data_copy):
             self._raise_exception(
-                Exception(
+                GameError(
                     f'The packet length ({length}) does not match the data'
                     f' ({len(self.raw_data_copy) + header_size} bytes).',
                     exception_location)
@@ -353,7 +351,7 @@ class Game:
         """
         if len(action.keys()) == 0:
             self._raise_exception(
-                Exception('The action is empty.', exception_location)
+                GameError('The action is empty.', exception_location)
             )
 
     @staticmethod
@@ -405,7 +403,7 @@ class Game:
             struct_type_setting = struct.get('type') or None
             if struct_type_setting is None:
                 self._raise_exception(
-                    Exception(
+                    GameError(
                         f'The struct type is missing. Struct -> {struct}.',
                         exception_location)
                 )
@@ -438,8 +436,8 @@ class Game:
             struct: dict = structs[index]
             message += self._get_struct_name_format(struct)
 
-            struct_output: dict = struct.get('output') or None
-            struct_reference: dict = struct.get('reference') or None
+            struct_output: dict | None = struct.get('output') or None
+            struct_reference: dict | None = struct.get('reference') or None
             if struct_reference and variable in struct_reference:
                 variable = struct_reference[variable]
                 struct_output = {}
@@ -448,7 +446,7 @@ class Game:
                 variable = self._get_struct_output_type(struct_output, variable)
                 variable = self._get_struct_output_zero_fill(struct_output, variable)
                 variable = self._get_struct_output_auto_zero_fill(
-                    struct_output, variable, struct.get('type'))
+                    struct_output, variable, struct.get('type') or '')
                 variable = self._get_struct_output_fill(struct_output, variable)
                 variable = self._get_struct_output_fill_left(struct_output, variable)
 
@@ -467,27 +465,27 @@ class Game:
         :rtype: str
         :return: Message with format.
         """
-        struct_name: str = struct.get('name') or None
+        struct_name: str | None = struct.get('name') or None
         if struct_name:
             return self.text_format(f' {struct_name}', TextStyle.BOLD)
 
         return ''
 
     @staticmethod
-    def _get_struct_output_type(struct: dict, variable: any) -> any:
+    def _get_struct_output_type(struct: dict, variable: Any) -> Any:
         """
         Get the struct output type with format.
 
         :type struct: dict
         :param struct: The struct information of the output.
 
-        :type struct: any
+        :type struct: Any
         :param struct: The variable which will be replaced.
 
         :rtype: Any
         :return: Variable with the format.
         """
-        struct_output_type: str = struct.get('type') or None
+        struct_output_type: str | None = struct.get('type') or None
         if struct_output_type and struct_output_type.lower() == 'hex':
             return variable.hex() if isinstance(variable, bytes) else hex(variable)
 
@@ -498,14 +496,14 @@ class Game:
         return variable
 
     @staticmethod
-    def _get_struct_output_zero_fill(struct: dict, variable: any) -> any:
+    def _get_struct_output_zero_fill(struct: dict, variable: Any) -> Any:
         """
         Get the struct output of zero fill with format.
 
         :type struct: dict
         :param struct: The struct information of the output.
 
-        :type struct: any
+        :type struct: Any
         :param struct: The variable which will be replaced.
 
         :rtype: Any
@@ -518,12 +516,12 @@ class Game:
         return variable
 
     @staticmethod
-    def _zero_fill(variable: any, width: int) -> str:
+    def _zero_fill(variable: Any, width: int) -> str:
         """
         Add zeros to the left until the text has the given width.
         For a hexadecimal value the zeros go after the `0x` prefix.
 
-        :type variable: any
+        :type variable: Any
         :param variable: The variable which will be filled.
 
         :type width: int
@@ -541,14 +539,14 @@ class Game:
         return text.zfill(width)
 
     def _get_struct_output_auto_zero_fill(self, struct: dict,
-                                          variable: any, struct_type: str) -> any:
+                                          variable: Any, struct_type: str) -> Any:
         """
         Get the struct output of auto zero fill with format.
 
         :type struct: dict
         :param struct: The struct information of the output.
 
-        :type struct: any
+        :type struct: Any
         :param struct: The variable which will be replaced.
 
         :type struct_type: str
@@ -559,8 +557,7 @@ class Game:
         """
         output_auto_zero_fill: bool = struct.get('auto_zero_fill') or False
         if output_auto_zero_fill:
-            struct_type: str = struct_type or ''
-            _, struct_size = self._get_struct(struct_type)
+            _, struct_size = self._get_struct(struct_type or '')
             struct_size *= 2
             struct_size += 2
             return self._zero_fill(variable, struct_size)
@@ -568,14 +565,14 @@ class Game:
         return variable
 
     @staticmethod
-    def _get_struct_output_fill(struct: dict, variable: any) -> any:
+    def _get_struct_output_fill(struct: dict, variable: Any) -> Any:
         """
         Get the struct output with fill left format.
 
         :type struct: dict
         :param struct: The struct information of the output.
 
-        :type struct: any
+        :type struct: Any
         :param struct: The variable which will be replaced.
 
         :rtype: Any
@@ -588,14 +585,14 @@ class Game:
         return variable
 
     @staticmethod
-    def _get_struct_output_fill_left(struct: dict, variable: any) -> any:
+    def _get_struct_output_fill_left(struct: dict, variable: Any) -> Any:
         """
         Get the struct output with fill left format.
 
         :type struct: dict
         :param struct: The struct information of the output.
 
-        :type struct: any
+        :type struct: Any
         :param struct: The variable which will be replaced.
 
         :rtype: Any
@@ -621,34 +618,16 @@ class Game:
         :return: The struct symbol and its size.
         """
         exception_location = ' -> _get_struct()'
-        structs = {
-            'char': ('c', 1),
-            'signed char': ('b', 1),
-            'unsigned char': ('B', 1),
-            'bool': ('?', 1),
-            'short': ('h', 2),
-            'unsigned short': ('H', 2),
-            'int': ('i', 4),
-            'unsigned int': ('I', 4),
-            'long': ('q', 8),
-            'unsigned long': ('Q', 8),
-            'half precision': ('e', 2),
-            'float': ('f', 4),
-            'double': ('d', 6),
-            'chars': ('s', 1),
-        }
 
-        symbol = ''
-        size = 0
-        try:
-            symbol, size = structs.get(struct_type.lower())
-        except TypeError:
+        struct = STRUCT_TYPES.get(struct_type.lower()) if isinstance(struct_type, str) else None
+        if struct is None:
             self._raise_exception(
-                Exception(
+                GameError(
                     f'The struct type ({struct_type}) is not defined in the map of structs.',
                     exception_location)
             )
 
+        symbol, size = struct
         if repeat_count > 1:
             size *= repeat_count
             symbol = f'{repeat_count}{symbol}'

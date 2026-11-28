@@ -3,12 +3,14 @@
 """
 Unit Test.
 """
+from struct import unpack
 from unittest.mock import MagicMock, patch, call
 
 from pytest import raises
 from scapy.layers.inet import IP
 from scapy.packet import Raw
 
+from src.sniparinject.core.errors import GameError, SettingsError
 from src.sniparinject.core.game import Game
 from src.sniparinject.core.text_style import TextStyle
 
@@ -66,7 +68,7 @@ class TestGame:
     @patch('src.sniparinject.core.game.Game._get_settings')
     def test_complete_length_without_settings(self, mock__get_settings: MagicMock):
         # Arrange
-        mock__get_settings.side_effect = RuntimeError('The Game settings are missing.')
+        mock__get_settings.side_effect = SettingsError('The Game settings are missing.')
 
         # Act
         size = Game.complete_length('', False, b'\x01\x02\x03')
@@ -160,9 +162,9 @@ class TestGame:
         # Assert
         mock_parse_packets.assert_called_once()
 
-    @patch('builtins.print')
+    @patch('src.sniparinject.core.game.logger')
     @patch('src.sniparinject.core.game.Game._parse_packets')
-    def test__start_catch_exception(self, mock_parse_packets: MagicMock, mock_print: MagicMock):
+    def test__start_catch_exception(self, mock_parse_packets: MagicMock, mock_logger: MagicMock):
         # Arrange
         expected_error_message = 'ShellBoom!'
         mock_parse_packets.side_effect = FloatingPointError(expected_error_message)
@@ -172,17 +174,17 @@ class TestGame:
         game.start()
 
         # Assert
-        mock_print.assert_has_calls([
-            call(f'{self.style_error}Error NODE: {expected_error_message}{self.style_end}'),
-            call(f'{self.style_error}Location: Class Game{self.style_end}'),
-            call(f'{self.style_error}Data: {self.style_end}'),
-            call(f'{self.style_error}Data Error: {self.style_end}'),
-            call(),
-        ])
+        mock_logger.error.assert_called_once_with(
+            '%s\n%s\n%s\n%s\n',
+            f'{self.style_error}Error NODE: {expected_error_message}{self.style_end}',
+            f'{self.style_error}Location: Class Game{self.style_end}',
+            f'{self.style_error}Data: {self.style_end}',
+            f'{self.style_error}Data Error: {self.style_end}',
+        )
 
-    @patch('builtins.print')
+    @patch('src.sniparinject.core.game.logger')
     @patch('src.sniparinject.core.game.Game._parse_packets')
-    def test__start_catch_exception_with_location(self, mock_parse_packets: MagicMock, mock_print: MagicMock):
+    def test__start_catch_exception_with_location(self, mock_parse_packets: MagicMock, mock_logger: MagicMock):
         # Arrange
         expected_error_message = 'zBoom!'
         expected_location = ' -> house() -> bedroom() -> bed()'
@@ -193,13 +195,13 @@ class TestGame:
         game.start()
 
         # Assert
-        mock_print.assert_has_calls([
-            call(f'{self.style_error}Error NODE: {expected_error_message}{self.style_end}'),
-            call(f'{self.style_error}Location: Class Game{expected_location}{self.style_end}'),
-            call(f'{self.style_error}Data: {self.style_end}'),
-            call(f'{self.style_error}Data Error: {self.style_end}'),
-            call(),
-        ])
+        mock_logger.error.assert_called_once_with(
+            '%s\n%s\n%s\n%s\n',
+            f'{self.style_error}Error NODE: {expected_error_message}{self.style_end}',
+            f'{self.style_error}Location: Class Game{expected_location}{self.style_end}',
+            f'{self.style_error}Data: {self.style_end}',
+            f'{self.style_error}Data Error: {self.style_end}',
+        )
 
     def test__extract_exception(self):
         # Arrange
@@ -233,17 +235,18 @@ class TestGame:
         expected_extra_location = 'Play on the table'
         exception = FileNotFoundError(expected_message, expected_location)
 
-        with raises(RuntimeError) as error:
+        with raises(GameError) as error:
             # Act
             game = Game('', '', IP() / Raw())
             game._raise_exception(exception, expected_extra_location)
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == GameError
+        assert error.value.__cause__ is exception
         assert error.value.args == (expected_message, expected_extra_location + expected_location)
 
-    @patch('builtins.print')
-    def test__print_error(self, mock_print: MagicMock):
+    @patch('src.sniparinject.core.game.logger')
+    def test__print_error(self, mock_logger: MagicMock):
         # Arrange
         expected_message = 'S.o.S'
         expected_location = 'Phone cabin'
@@ -256,13 +259,13 @@ class TestGame:
         game._print_error(expected_message, expected_location)
 
         # Assert
-        mock_print.assert_has_calls([
-            call(f'{self.style_error}Error NODE: {expected_message}{self.style_end}'),
-            call(f'{self.style_error}Location: {expected_location}{self.style_end}'),
-            call(f'{self.style_error}Data: {expected_data}{self.style_end}'),
-            call(f'{self.style_error}Data Error: {expected_data}{self.style_end}'),
-            call(),
-        ])
+        mock_logger.error.assert_called_once_with(
+            '%s\n%s\n%s\n%s\n',
+            f'{self.style_error}Error NODE: {expected_message}{self.style_end}',
+            f'{self.style_error}Location: {expected_location}{self.style_end}',
+            f'{self.style_error}Data: {expected_data}{self.style_end}',
+            f'{self.style_error}Data Error: {expected_data}{self.style_end}',
+        )
 
     @patch('src.sniparinject.core.game.Game._display_message')
     @patch('src.sniparinject.core.game.Game._execute_action')
@@ -321,7 +324,7 @@ class TestGame:
             game._parse_packets()
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == GameError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('src.sniparinject.core.game.Game._execute_action')
@@ -344,7 +347,7 @@ class TestGame:
             game._parse_packets()
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == GameError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('builtins.print')
@@ -509,7 +512,7 @@ class TestGame:
             game._get_settings()
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == SettingsError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('src.sniparinject.core.game.Settings.get_dictionary')
@@ -525,7 +528,7 @@ class TestGame:
             game._get_settings()
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == SettingsError
         assert error.value.args == (expected_error_message, expected_error_location)
 
     @patch('src.sniparinject.core.game.Game._convert_structs_to_format')
@@ -602,7 +605,7 @@ class TestGame:
             game._validate_action({}, expected_location)
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == GameError
         assert error.value.args == (expected_message, expected_location)
 
     def test__validate_structs(self):
@@ -704,7 +707,7 @@ class TestGame:
             message, size = game._join_structs(structs, expected_location)
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == GameError
         assert error.value.args == (expected_message, expected_location)
         # assert message == ''
         # assert size == 0
@@ -1077,7 +1080,7 @@ class TestGame:
             game._get_struct(struct_type)
 
         # Assert
-        assert error.type == RuntimeError
+        assert error.type == GameError
         assert error.value.args == (expected_message, expected_location)
 
     def test__get_data(self):
@@ -1368,3 +1371,15 @@ class TestGame:
 
         # Act / Assert
         assert Game._get_struct_output_type(struct, 123) == 123
+
+    def test__get_struct_double_has_8_bytes(self):
+        # Arrange
+        game = Game('', '', IP() / Raw(b'\x00\x00\x00\x00\x00\x00\xf8\x3f'))
+
+        # Act
+        symbol, size = game._get_struct('double')
+        value, = unpack(f'<{symbol}', game._get_data(size))
+
+        # Assert
+        assert (symbol, size) == ('d', 8)
+        assert value == 1.5

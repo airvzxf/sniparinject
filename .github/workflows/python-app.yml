@@ -46,6 +46,9 @@ jobs:
       - name: Run Flake8
         run: ./script/qa-flake8.bash
 
+      - name: Run Mypy
+        run: ./script/qa-mypy.bash
+
       - name: Run PyTest
         run: ./script/qa-pytest.bash
 
