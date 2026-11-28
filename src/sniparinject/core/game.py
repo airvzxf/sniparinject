@@ -215,7 +215,7 @@ class Game:
 
             packet_id, = unpack('<H', self._get_data(2))
             actions = settings.get('actions') or {}
-            if packet_id not in actions.keys():
+            if packet_id not in actions:
                 if self.display_message:
                     print(f'{self.request.upper()}'
                           f' | ID {hex(packet_id)}'

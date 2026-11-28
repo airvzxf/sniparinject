@@ -3,11 +3,10 @@
 """
 Unit Test.
 """
-from unittest.mock import call, patch, MagicMock
+from unittest.mock import MagicMock, call, patch
 
 import pytest
-
-from scapy.layers.inet import TCP, IP, UDP
+from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 

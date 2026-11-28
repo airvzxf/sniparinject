@@ -6,9 +6,9 @@ Start the sniff of the network packets.
 from pathlib import Path
 from typing import cast
 
-from scapy.layers.inet import TCP, UDP, IP
-from scapy.layers.l2 import Ether
 from scapy.compat import raw
+from scapy.layers.inet import IP, TCP, UDP
+from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 from scapy.sendrecv import sniff
 

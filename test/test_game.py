@@ -4,7 +4,7 @@
 Unit Test.
 """
 from struct import unpack
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, call, patch
 
 from pytest import raises
 from scapy.layers.inet import IP
@@ -704,7 +704,7 @@ class TestGame:
         # Act
         game = Game('', '', IP() / Raw())
         with raises(RuntimeError) as error:
-            message, size = game._join_structs(structs, expected_location)
+            game._join_structs(structs, expected_location)
 
         # Assert
         assert error.type == GameError

@@ -7,7 +7,7 @@ cd "${CURRENT_PATH}" || exit
 cd ../test || exit
 
 source ../venv/bin/activate
-coverage3 run 1>/dev/null
-coverage3 report
-coverage3 html 1>/dev/null
+coverage run 1>/dev/null
+coverage report
+coverage html 1>/dev/null
 deactivate
