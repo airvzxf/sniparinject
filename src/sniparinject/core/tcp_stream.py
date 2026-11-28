@@ -17,14 +17,20 @@ class TcpStream:
     are not parsed yet, so the next segment completes them.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, next_sequence: int | None = None) -> None:
         """
         Start an empty stream.
+
+        :type next_sequence: int | None
+        :param next_sequence: The sequence number of the first data byte,
+        known from the SYN of the connection. None takes the sequence of the
+        first segment added.
 
         :rtype: None
         :return: Nothing.
         """
-        self.next_sequence: int | None = None
+        self.next_sequence = next_sequence
+        self.first_sequence = next_sequence
         self.buffer = b''
         self.pending: dict[int, bytes] = {}
 
@@ -50,6 +56,7 @@ class TcpStream:
         """
         if self.next_sequence is None:
             self.next_sequence = sequence
+            self.first_sequence = sequence
 
         if self._distance(sequence) >= SEQUENCE_SIZE // 2:
             if len(payload) > len(self.pending.get(sequence, b'')):

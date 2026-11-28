@@ -14,8 +14,22 @@ class TestTcpStream:
 
         # Assert
         assert stream.next_sequence is None
+        assert stream.first_sequence is None
         assert stream.buffer == b''
         assert stream.pending == {}
+
+    def test___init___with_next_sequence(self):
+        # Arrange
+        stream = TcpStream(101)
+
+        # Act
+        stream.add(103, b'\x03')
+        stream.add(101, b'\x01\x02')
+
+        # Assert
+        assert stream.buffer == b'\x01\x02\x03'
+        assert stream.next_sequence == 104
+        assert stream.first_sequence == 101
 
     def test_add_in_order(self):
         # Arrange
@@ -28,6 +42,7 @@ class TestTcpStream:
         # Assert
         assert stream.buffer == b'\x01\x02\x03'
         assert stream.next_sequence == 103
+        assert stream.first_sequence == 100
 
     def test_add_skip_retransmit(self):
         # Arrange
