@@ -3,6 +3,7 @@
 """
 Rebuild the data of one direction of a TCP connection.
 """
+from typing import cast
 
 SEQUENCE_SIZE = 2 ** 32
 MAX_PENDING_SEGMENTS = 16
@@ -80,7 +81,8 @@ class TcpStream:
         value of half the sequence space or more means that the sequence is
         after the next expected byte.
         """
-        return (self.next_sequence - sequence) % SEQUENCE_SIZE
+        # Only called after the first segment has set the next sequence.
+        return (cast(int, self.next_sequence) - sequence) % SEQUENCE_SIZE
 
     def _append(self, sequence: int, payload: bytes) -> None:
         """
@@ -127,7 +129,7 @@ class TcpStream:
         :return: Nothing.
         """
         self.buffer = b''
-        start = self.next_sequence
+        start = cast(int, self.next_sequence)
         self.next_sequence = min(
             self.pending, key=lambda sequence: (sequence - start) % SEQUENCE_SIZE
         )

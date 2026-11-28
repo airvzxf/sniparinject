@@ -270,13 +270,11 @@ What are the structs? It is the way that it will parse the data. Basically,
 split the raw data based on the Python Structs which are C Types. They are
 well-known as an integer, char, long, float, etc. You will find information in
 the official web page [Python Structs][structs]. In the game the function which
-contains this logic is
-`def _get_struct(self, struct_type: str, repeat_count: int = 1)`
-in `./core/game.py`.
+contains this map is `STRUCT_TYPES` in `./core/structs.py`.
 
 ```python
 # 'ID': ('Python struct symbol', Size in bytes)
-structs = {
+STRUCT_TYPES = {
     'char': ('c', 1),
     'signed char': ('b', 1),
     'unsigned char': ('B', 1),
@@ -289,10 +287,17 @@ structs = {
     'unsigned long': ('Q', 8),
     'half precision': ('e', 2),
     'float': ('f', 4),
-    'double': ('d', 6),
-    'chars': ('s', 0),
+    'double': ('d', 8),
+    'chars': ('s', 1),
 }
 ```
+
+---
+
+The sniffer checks the settings file when it starts. A missing `Server` or
+`Game` section, an unknown struct `type`, a `size` that is not a number, or an
+action id that is not a number (`'0x7e'` in quotes is text) stops it with a
+list of every problem found.
 
 ---
 
