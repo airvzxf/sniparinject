@@ -13,7 +13,8 @@ from src.sniparinject.core.structs import STRUCT_TYPES
 
 MAN_PAGE = Path(__file__).resolve().parent.parent / 'src' / 'man' / 'sniparinject-settings.5'
 SETTINGS_KEYS = (
-    'Network', 'interface', 'offline', 'Server', 'protocol', 'ip', 'port', 'Game', 'host',
+    'Network', 'interface', 'offline', 'Display', 'include', 'exclude', 'log_file',
+    'Server', 'protocol', 'ip', 'port', 'Game', 'host',
     'node', 'display_message', 'actions', 'title', 'variable_length', 'structs', 'name',
     'type', 'size', 'reference', 'output', 'auto_zero_fill', *OUTPUT_SIZES,
 )
@@ -41,7 +42,7 @@ class TestManPage:
 
         # Act
         in_synopsis = re.search(rf'^\s*(\\-\s+)?{key}:', text, re.MULTILINE) is not None
-        described = f'.BI {key}: ' in text or key in ('Network', 'Server', 'Game', 'host', 'node')
+        described = f'.BI {key}: ' in text or key in ('Network', 'Server', 'Display', 'Game', 'host', 'node')
 
         # Assert
         assert in_synopsis and described, key

@@ -9,6 +9,10 @@ Server:
   protocol: tcp | udp
   ip: \fIaddress\fP
   port: \fInumber\fP
+Display:
+  include: \fIpatterns\fP
+  exclude: \fIpatterns\fP
+  log_file: \fIfile\fP
 Game:
   host | node:
     display_message: Yes | No
@@ -109,6 +113,37 @@ the segments of each direction are joined in sequence order and the
 retransmitted bytes are skipped, so a game packet split across segments is
 parsed once it is complete.
 After a lost segment the stream starts again from the next one.
+.SH DISPLAY
+The optional
+.B Display
+mapping chooses which packet lines are printed and keeps them in a file.
+It is read again when the settings file changes, so the filters can be
+changed while the sniffer runs.
+The patterns are Python regular expressions, one pattern or a list, that
+match anywhere in the line without its colors; start a pattern with
+.B (?i)
+to ignore the letter case.
+.TP
+.BI include: " patterns"
+Print only the lines that match at least one pattern.
+.TP
+.BI exclude: " patterns"
+Do not print the lines that match any pattern.
+.TP
+.BI log_file: " file"
+Append every packet line to this file, without colors, also the lines that
+the filters hide, so the file can be searched later, for example with
+.BR grep (1).
+A relative path is relative to the settings file.
+.PP
+For example, print only the lines from the server and not the ticks:
+.PP
+.EX
+Display:
+  include: \(aq^<\-\- \(aq
+  exclude: [Tick, Ping]
+  log_file: packets.log
+.EE
 .SH GAME
 The
 .B Game
@@ -339,6 +374,11 @@ is unknown,
 a
 .B size
 is not a number of 0 or more,
+a
+.B Display
+pattern is not valid text or not a valid regular expression,
+.B log_file
+is not a path,
 or
 .BR zero_fill ,
 .BR fill " or " fill_left
@@ -403,6 +443,7 @@ Network:
   offline: capture.pcapng
 .EE
 .SH SEE ALSO
+.BR grep (1),
 .BR tshark (1),
 .BR pcap (3PCAP),
 .UR https://docs.python.org/3/library/struct.html#format-characters

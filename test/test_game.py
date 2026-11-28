@@ -4,7 +4,7 @@
 Unit Test.
 """
 from struct import unpack
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from pytest import raises
 from scapy.layers.inet import IP
@@ -363,10 +363,7 @@ class TestGame:
         game._parse_packets()
 
         # Assert
-        mock_print.assert_has_calls([
-            call('NODE | ID 0xa | 1234'),
-            call('     |-> 0a001234')
-        ])
+        mock_print.assert_called_once_with('NODE | ID 0xa | 1234\n     |-> 0a001234')
         mock__get_settings.assert_called_once_with()
 
     @patch('builtins.print')
