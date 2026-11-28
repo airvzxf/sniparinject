@@ -39,6 +39,37 @@ jobs:
           name: dist
           path: src/dist/
 
+  executable:
+    name: Attach the ELF64 executable
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Build
+        run: ./script/executable-build.bash
+
+      - name: Check the executable
+        run: ./script/qa-executable.bash
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          name="sniparinject-${TAG#v}-linux-x86_64"
+          cp dist/executable/sniparinject "${name}"
+          sha256sum "${name}" > "${name}.sha256"
+          gh release upload "${TAG}" "${name}" "${name}.sha256" --clobber
+
   publish:
     name: Publish to PyPI
     needs: build

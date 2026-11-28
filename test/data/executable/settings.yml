@@ -1,0 +1,20 @@
+Network:
+  offline: capture.pcap
+Server:
+  ip: 10.0.0.1
+  port: 5122
+Game:
+  node:
+    actions:
+      0x7d:
+        title: Scenario change
+  host:
+    actions:
+      0x80:
+        title: NPC Monster Check
+        structs:
+          - name: ID
+            type: unsigned int
+            output:
+              type: hex
+              auto_zero_fill: Yes

@@ -15,6 +15,12 @@ project uses [Semantic Versioning](https://semver.org/).
 - `Display` settings: `include` and `exclude` regular expressions choose
   which packet lines are printed, and `log_file` keeps every line in a file
   to search it later. They are read again when the settings file changes.
+- The `sniparinject SETTINGS` command (also `python -m sniparinject`), with
+  `--version`. It prints the errors without a traceback and returns 1, or 130
+  on Ctrl+C.
+- A stand-alone ELF64 executable for Linux x86-64, built with PyInstaller.
+  CI builds and runs it on a capture file, and the release workflow attaches
+  it, with its SHA-256 checksum, to the GitHub release.
 
 ### Fixed
 
