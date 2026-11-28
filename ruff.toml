@@ -1,0 +1,8 @@
+line-length = 127
+target-version = "py311"
+extend-exclude = ["venv", "build", "dist"]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+# Keep the explicit if/else blocks: they read better than the inlined forms.
+ignore = ["SIM103", "SIM108"]

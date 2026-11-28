@@ -4,7 +4,7 @@
 Given a YAML file it get the settings and return a dictionary with them.
 """
 from os import stat
-from typing import Any
+from typing import Any, ClassVar
 
 from yaml import safe_load
 
@@ -25,7 +25,7 @@ class Settings:
     the file is parsed again only after it changes on disk.
     """
 
-    _cache: dict[str, tuple[int, dict]] = {}
+    _cache: ClassVar[dict[str, tuple[int, dict]]] = {}
 
     def __init__(self, config_file: str) -> None:
         """
