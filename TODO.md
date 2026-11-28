@@ -14,9 +14,9 @@
 - [ ] Add screen filter. Keep internally the outputs and provide commands to
   the user to search specific outputs.
 
-- [ ] Versioning: the `0.0.0.devN` pre-releases are already stable. Move to
-  `0.1.0` (or `1.0.0`) when the settings keys are considered final, for
-  example together with the packet injection.
+- [x] Versioning: stable [SemVer](https://semver.org/) from `1.0.0`. A
+  breaking change in the settings keys or the command line needs a new
+  major version.
 
 - [x] Add UDP protocol for the sniffer.
 - [x] Core module. Extractions and refactors.
